@@ -1,9 +1,12 @@
-# Eventos Gamer
+# Los juegos como son (LJCS)
 
-Aplicacion web para reunir informacion de eventos de la comunidad gamer (torneos, convenciones,
-LAN parties, lanzamientos). Proyecto de la asignatura **ISY2202 Seguridad y Calidad en el Desarrollo
-de Software** (Duoc UC), Experiencia 1, Semana 1: "Creando una aplicacion web segura usando frameworks
-y librerias de seguridad".
+Aplicacion web segura que reune los eventos de la comunidad gamer en Chile: torneos, convenciones,
+LAN parties y lanzamientos.
+
+## Integrantes
+
+- Tomas Murua ([@TomasMurua](https://github.com/TomasMurua))
+- Raul Low ([@raulow92](https://github.com/raulow92))
 
 ## Stack
 
@@ -12,6 +15,7 @@ y librerias de seguridad".
 - Spring Security 6 (autenticacion por formulario, contrasenas con BCrypt, CSRF, cabeceras de seguridad)
 - Thymeleaf + `thymeleaf-extras-springsecurity6`
 - Bean Validation para los formularios
+- Tipografias Big Shoulders Display y Archivo (licencia OFL) servidas desde la propia aplicacion
 
 ## Rutas
 
@@ -28,14 +32,17 @@ Cualquier otra ruta requiere autenticacion y redirige a `/login`.
 
 ## Usuarios de prueba
 
-| Correo | Contrasena (por defecto) | Roles |
+| Usuario | Contrasena (por defecto) | Roles |
 |---|---|---|
 | `ana@eventosgamer.cl` | `Gamer2026!` | USER |
 | `diego@eventosgamer.cl` | `Gamer2026!` | USER |
 | `admin@eventosgamer.cl` | `Admin2026!` | USER, ADMIN |
+| `llam` | sin valor por defecto | USER, ADMIN |
 
-Las contrasenas se leen de las variables de entorno `APP_PASSWORD_USUARIO` y `APP_PASSWORD_ADMIN`.
-Los valores por defecto son solo para desarrollo local. Tambien se pueden crear cuentas nuevas desde `/registro`.
+Las contrasenas se leen de las variables de entorno `APP_PASSWORD_USUARIO`, `APP_PASSWORD_ADMIN` y
+`APP_PASSWORD_LLAM`. Los valores por defecto son solo para desarrollo local. El administrador `llam` solo
+se crea si `APP_PASSWORD_LLAM` esta definida, asi su clave nunca queda en el codigo. El login acepta el
+correo o el nombre de usuario. Tambien se pueden crear cuentas nuevas desde `/registro`.
 
 ## Medidas de seguridad implementadas
 
@@ -61,22 +68,20 @@ Abrir http://localhost:8080/home
 ./mvnw test
 ```
 
-Los tests verifican rutas publicas y privadas, login de los usuarios de prueba, registro, CSRF,
-validaciones y cabeceras de seguridad.
+Los tests verifican rutas publicas y privadas, login de los usuarios de prueba (incluido `llam` cuando
+su variable esta definida), registro, CSRF, validaciones y cabeceras de seguridad.
 
 ## Despliegue en la maquina virtual con Docker
 
 ```bash
 docker build -t eventos-gamer .
 docker run -d --name eventos-gamer --restart unless-stopped -p 80:8080 \
-  -e APP_PASSWORD_USUARIO='<contrasena>' -e APP_PASSWORD_ADMIN='<contrasena>' \
+  --env-file /ruta/a/eventos-gamer.env \
   eventos-gamer
 ```
 
+El archivo `eventos-gamer.env` (con permisos `600`, fuera del repositorio) define `APP_PASSWORD_USUARIO`,
+`APP_PASSWORD_ADMIN` y `APP_PASSWORD_LLAM`.
+
 La aplicacion queda disponible en `http://<IP-de-la-VM>/` (tambien responde en `/home` y `/recetas`).
 Recordar abrir el puerto 80 en las reglas de red de la VM.
-
-## Integrantes
-
-- Tomas Murua
-- Raul Low
