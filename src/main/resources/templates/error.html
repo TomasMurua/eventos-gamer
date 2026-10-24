@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Error')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+<main class="contenedor contenedor-angosto">
+    <section class="panel">
+        <h1 th:text="${status == 404} ? 'Pagina no encontrada' : 'Ocurrio un error'">Ocurrio un error</h1>
+        <p>Vuelve al <a th:href="@{/home}">inicio</a> para seguir navegando.</p>
+    </section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

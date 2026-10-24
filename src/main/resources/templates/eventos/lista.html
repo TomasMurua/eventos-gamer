@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Eventos')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor seccion">
+    <h1>Eventos publicados</h1>
+
+    <form th:action="@{/eventos}" method="get" class="filtros">
+        <div>
+            <label for="categoria">Categoria</label>
+            <select id="categoria" name="categoria">
+                <option value="">Todas</option>
+                <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}" th:selected="${c == categoria}"></option>
+            </select>
+        </div>
+        <div>
+            <label for="ciudad">Ubicacion</label>
+            <select id="ciudad" name="ciudad">
+                <option value="">Todas</option>
+                <option th:each="c : ${ciudades}" th:value="${c}" th:text="${c}" th:selected="${c == ciudad}"></option>
+            </select>
+        </div>
+        <div>
+            <label for="desde">Desde</label>
+            <input id="desde" type="date" name="desde" th:value="${desde}">
+        </div>
+        <div>
+            <label for="hasta">Hasta</label>
+            <input id="hasta" type="date" name="hasta" th:value="${hasta}">
+        </div>
+        <div class="filtros-acciones">
+            <button type="submit" class="boton">Buscar</button>
+            <a class="boton boton-secundario" th:href="@{/eventos}">Limpiar</a>
+        </div>
+    </form>
+
+    <p class="meta" th:text="${#lists.size(eventos) + ' evento(s) encontrados'}">0 eventos</p>
+    <div class="grilla">
+        <th:block th:each="evento : ${eventos}"><article th:replace="~{fragments :: tarjeta(${evento})}"></article></th:block>
+    </div>
+    <p th:if="${#lists.isEmpty(eventos)}" class="vacio">No hay eventos que coincidan con la busqueda.</p>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

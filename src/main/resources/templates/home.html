@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments :: head('Inicio')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main>
+    <section class="hero">
+        <div class="contenedor">
+            <h1>Todos los eventos gamer de Chile en un solo lugar</h1>
+            <p>Torneos, convenciones, LAN parties y lanzamientos. Encuentra tu proximo evento, comparte con tu comunidad y participa.</p>
+            <div sec:authorize="isAnonymous()" class="hero-acciones">
+                <a class="boton" th:href="@{/registro}">Crear cuenta gratis</a>
+                <a class="boton boton-secundario" th:href="@{/login}">Ya tengo cuenta</a>
+            </div>
+            <div sec:authorize="isAuthenticated()" class="hero-acciones">
+                <p class="saludo">Hola, <span sec:authentication="name">usuario</span>.</p>
+                <a class="boton" th:href="@{/eventos}">Buscar eventos</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="contenedor seccion">
+        <h2>Proximos eventos</h2>
+        <div class="grilla">
+            <th:block th:each="evento : ${proximos}"><article th:replace="~{fragments :: tarjeta(${evento})}"></article></th:block>
+        </div>
+        <p th:if="${#lists.isEmpty(proximos)}" class="vacio">No hay eventos proximos publicados.</p>
+    </section>
+
+    <section class="contenedor seccion">
+        <h2>Eventos destacados</h2>
+        <div class="grilla">
+            <th:block th:each="evento : ${destacados}"><article th:replace="~{fragments :: tarjeta(${evento})}"></article></th:block>
+        </div>
+    </section>
+
+    <section class="contenedor seccion">
+        <h2>Marcas asociadas</h2>
+        <div class="grilla grilla-marcas">
+            <div th:each="marca : ${marcas}" class="marca">
+                <span class="marca-rubro" th:text="${marca.rubro()}">Rubro</span>
+                <h3 th:text="${marca.nombre()}">Marca</h3>
+                <p th:text="${marca.eslogan()}">Eslogan</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

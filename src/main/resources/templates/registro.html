@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Registro')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor contenedor-angosto">
+    <section class="panel">
+        <h1>Crear cuenta</h1>
+        <p>Registrate para crear tu perfil y revisar todos los eventos.</p>
+
+        <form th:action="@{/registro}" th:object="${registro}" method="post" class="formulario" novalidate>
+            <label for="nombre">Nombre</label>
+            <input id="nombre" type="text" th:field="*{nombre}" autocomplete="name" maxlength="60" required>
+            <p class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></p>
+
+            <label for="correo">Correo electronico</label>
+            <input id="correo" type="email" th:field="*{correo}" autocomplete="email" maxlength="100" required>
+            <p class="error-campo" th:if="${#fields.hasErrors('correo')}" th:errors="*{correo}"></p>
+
+            <label for="password">Contrasena</label>
+            <input id="password" type="password" th:field="*{password}" autocomplete="new-password" minlength="8" maxlength="64" required>
+            <p class="ayuda">Minimo 8 caracteres.</p>
+            <p class="error-campo" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+
+            <label for="confirmarPassword">Confirmar contrasena</label>
+            <input id="confirmarPassword" type="password" th:field="*{confirmarPassword}" autocomplete="new-password" required>
+            <p class="error-campo" th:if="${#fields.hasErrors('confirmarPassword')}" th:errors="*{confirmarPassword}"></p>
+
+            <button type="submit" class="boton">Crear cuenta</button>
+        </form>
+        <p class="nota">¿Ya tienes cuenta? <a th:href="@{/login}">Ingresa aqui</a></p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

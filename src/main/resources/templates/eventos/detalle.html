@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head(${evento.nombre()})}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor contenedor-medio seccion">
+    <a class="enlace" th:href="@{/eventos}">&larr; Volver a eventos</a>
+
+    <article class="panel detalle">
+        <span class="etiqueta" th:text="${evento.categoria()}">Categoria</span>
+        <h1 th:text="${evento.nombre()}">Nombre del evento</h1>
+        <p th:text="${evento.descripcion()}">Descripcion</p>
+
+        <dl class="datos">
+            <dt>Fecha y hora</dt>
+            <dd th:text="${#temporals.format(evento.fecha(), 'dd/MM/yyyy') + ' a las ' + #temporals.format(evento.hora(), 'HH:mm')}">01/01/2026 a las 10:00</dd>
+            <dt>Direccion</dt>
+            <dd th:text="${evento.direccion() + ', ' + evento.ciudad()}">Direccion</dd>
+            <dt>Organizadores</dt>
+            <dd th:text="${#strings.listJoin(evento.organizadores(), ', ')}">Organizadores</dd>
+            <dt>Principales expositores</dt>
+            <dd>
+                <ul><li th:each="e : ${evento.expositores()}" th:text="${e}">Expositor</li></ul>
+            </dd>
+        </dl>
+
+        <h2>Servicios disponibles</h2>
+        <ul class="servicios">
+            <li th:classappend="${evento.servicios().estacionamiento()} ? 'si' : 'no'">
+                Estacionamiento: <strong th:text="${evento.servicios().estacionamiento()} ? 'Si' : 'No'">Si</strong></li>
+            <li class="si">Locomocion colectiva: <strong th:text="${evento.servicios().locomocionColectiva()}">Metro</strong></li>
+            <li th:classappend="${evento.servicios().comida()} ? 'si' : 'no'">
+                Servicio de comidas: <strong th:text="${evento.servicios().comida()} ? 'Si' : 'No'">Si</strong></li>
+            <li th:classappend="${evento.servicios().alojamiento()} ? 'si' : 'no'">
+                Alojamiento: <strong th:text="${evento.servicios().alojamiento()} ? 'Si' : 'No'">No</strong></li>
+        </ul>
+    </article>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

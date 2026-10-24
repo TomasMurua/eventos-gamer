@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Ingresar')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor contenedor-angosto">
+    <section class="panel">
+        <h1>Ingresar</h1>
+
+        <div th:if="${param.error}" class="alerta alerta-error">Correo o contrasena incorrectos.</div>
+        <div th:if="${param.logout}" class="alerta alerta-ok">Cerraste sesion correctamente.</div>
+        <div th:if="${param.registrado}" class="alerta alerta-ok">Cuenta creada. Ya puedes ingresar.</div>
+
+        <form th:action="@{/login}" method="post" class="formulario">
+            <label for="username">Correo</label>
+            <input id="username" type="email" name="username" autocomplete="username" required autofocus>
+
+            <label for="password">Contrasena</label>
+            <input id="password" type="password" name="password" autocomplete="current-password" required>
+
+            <button type="submit" class="boton">Ingresar</button>
+        </form>
+        <p class="nota">¿No tienes cuenta? <a th:href="@{/registro}">Registrate</a></p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

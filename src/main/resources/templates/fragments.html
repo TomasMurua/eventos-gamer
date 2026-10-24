@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' | Eventos Gamer'">Eventos Gamer</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
+</head>
+<body>
+
+<header th:fragment="header" class="site-header">
+    <div class="contenedor header-inner">
+        <a class="logo" th:href="@{/home}">
+            <img th:src="@{/img/logo.svg}" alt="" width="32" height="32">
+            <span>Eventos<strong>Gamer</strong></span>
+        </a>
+        <nav class="nav">
+            <a th:href="@{/home}">Inicio</a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/eventos}">Eventos</a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/perfil}">Mi perfil</a>
+            <a sec:authorize="isAnonymous()" th:href="@{/registro}">Registrarse</a>
+            <a sec:authorize="isAnonymous()" class="boton boton-chico" th:href="@{/login}">Ingresar</a>
+            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="form-logout">
+                <span class="usuario-actual" sec:authentication="name">usuario</span>
+                <button type="submit" class="boton boton-chico boton-secundario">Salir</button>
+            </form>
+        </nav>
+    </div>
+</header>
+
+<footer th:fragment="footer" class="site-footer">
+    <div class="contenedor">
+        <p>Eventos Gamer &middot; ISY2202 Seguridad y Calidad en el Desarrollo de Software &middot; Duoc UC</p>
+    </div>
+</footer>
+
+<article th:fragment="tarjeta(evento)" class="tarjeta-evento">
+    <div class="tarjeta-banner" th:classappend="${'cat-' + #strings.toLowerCase(#strings.replace(evento.categoria(), ' ', '-'))}">
+        <span class="etiqueta" th:text="${evento.categoria()}">Categoria</span>
+    </div>
+    <div class="tarjeta-cuerpo">
+        <h3 th:text="${evento.nombre()}">Nombre del evento</h3>
+        <p class="meta">
+            <span th:text="${#temporals.format(evento.fecha(), 'dd/MM/yyyy')}">01/01/2026</span>
+            &middot; <span th:text="${evento.ciudad()}">Ciudad</span>
+        </p>
+        <p th:text="${evento.descripcionCorta()}">Descripcion corta</p>
+        <a class="enlace" th:href="@{/eventos/{id}(id=${evento.id()})}">Ver detalle</a>
+    </div>
+</article>
+
+</body>
+</html>
