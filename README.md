@@ -6,7 +6,7 @@ LAN parties y lanzamientos.
 ## Integrantes
 
 - Tomas Murua ([@TomasMurua](https://github.com/TomasMurua))
-- Raul Low ([@raulow92](https://github.com/raulow92))
+- Raul Low ([@ralow-uc](https://github.com/ralow-uc))
 
 ## Stack
 
