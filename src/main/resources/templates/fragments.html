@@ -3,52 +3,53 @@
 <head th:fragment="head(titulo)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${titulo} + ' | Eventos Gamer'">Eventos Gamer</title>
+    <title th:text="${titulo} + ' | Los juegos como son'">Los juegos como son</title>
+    <link rel="preload" th:href="@{/fonts/big-shoulders-display-900.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/archivo-400.woff2}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
 </head>
 <body>
 
-<header th:fragment="header" class="site-header">
-    <div class="contenedor header-inner">
-        <a class="logo" th:href="@{/home}">
-            <img th:src="@{/img/logo.svg}" alt="" width="32" height="32">
-            <span>Eventos<strong>Gamer</strong></span>
+<header th:fragment="header" class="cabecera">
+    <div class="contenedor cabecera-inner">
+        <a class="marca-sitio" th:href="@{/home}">
+            <img th:src="@{/img/logo.svg}" alt="" width="36" height="36">
+            <span class="marca-sigla" aria-hidden="true">LJCS</span>
+            <span class="marca-nombre">Los juegos como son</span>
         </a>
-        <nav class="nav">
+        <nav class="nav" aria-label="Principal">
             <a th:href="@{/home}">Inicio</a>
             <a sec:authorize="isAuthenticated()" th:href="@{/eventos}">Eventos</a>
             <a sec:authorize="isAuthenticated()" th:href="@{/perfil}">Mi perfil</a>
-            <a sec:authorize="isAnonymous()" th:href="@{/registro}">Registrarse</a>
+            <a sec:authorize="isAnonymous()" th:href="@{/registro}">Crear cuenta</a>
             <a sec:authorize="isAnonymous()" class="boton boton-chico" th:href="@{/login}">Ingresar</a>
-            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="form-logout">
+            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="form-salir">
                 <span class="usuario-actual" sec:authentication="name">usuario</span>
-                <button type="submit" class="boton boton-chico boton-secundario">Salir</button>
+                <button type="submit" class="boton boton-chico boton-linea">Salir</button>
             </form>
         </nav>
     </div>
 </header>
 
-<footer th:fragment="footer" class="site-footer">
+<footer th:fragment="footer" class="pie">
     <div class="contenedor">
-        <p>Eventos Gamer &middot; ISY2202 Seguridad y Calidad en el Desarrollo de Software &middot; Duoc UC</p>
+        <p>© 2026 Los juegos como son (LJCS)</p>
     </div>
 </footer>
 
-<article th:fragment="tarjeta(evento)" class="tarjeta-evento">
-    <div class="tarjeta-banner" th:classappend="${'cat-' + #strings.toLowerCase(#strings.replace(evento.categoria(), ' ', '-'))}">
-        <span class="etiqueta" th:text="${evento.categoria()}">Categoria</span>
+<li th:fragment="fila(evento)" class="fila">
+    <time class="fila-fecha" th:datetime="${evento.fecha()}">
+        <span class="fila-dia" th:text="${#temporals.format(evento.fecha(), 'd')}">14</span>
+        <span class="fila-mes" th:text="${#strings.replace(#temporals.format(evento.fecha(), 'MMM'), '.', '')}">nov</span>
+    </time>
+    <div class="fila-evento">
+        <h3><a th:href="@{/eventos/{id}(id=${evento.id()})}" th:text="${evento.nombre()}">Nombre del evento</a></h3>
+        <p th:text="${evento.descripcionCorta()}">Descripción corta</p>
     </div>
-    <div class="tarjeta-cuerpo">
-        <h3 th:text="${evento.nombre()}">Nombre del evento</h3>
-        <p class="meta">
-            <span th:text="${#temporals.format(evento.fecha(), 'dd/MM/yyyy')}">01/01/2026</span>
-            &middot; <span th:text="${evento.ciudad()}">Ciudad</span>
-        </p>
-        <p th:text="${evento.descripcionCorta()}">Descripcion corta</p>
-        <a class="enlace" th:href="@{/eventos/{id}(id=${evento.id()})}">Ver detalle</a>
-    </div>
-</article>
+    <p class="fila-categoria" th:text="${evento.categoria()}">Categoría</p>
+    <p class="fila-ciudad" th:text="${evento.ciudad()}">Ciudad</p>
+</li>
 
 </body>
 </html>

@@ -14,7 +14,7 @@
     <artifactId>eventos-gamer</artifactId>
     <version>0.1.0</version>
     <name>eventos-gamer</name>
-    <description>ISY2202 - Aplicacion web segura de eventos gamer (Spring Boot + Spring Security + Thymeleaf)</description>
+    <description>Aplicacion web segura de eventos gamer (Spring Boot + Spring Security + Thymeleaf)</description>
 
     <properties>
         <java.version>17</java.version>

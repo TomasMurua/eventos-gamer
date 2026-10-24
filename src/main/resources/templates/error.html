@@ -3,10 +3,12 @@
 <head th:replace="~{fragments :: head('Error')}"></head>
 <body>
 <header th:replace="~{fragments :: header}"></header>
-<main class="contenedor contenedor-angosto">
-    <section class="panel">
-        <h1 th:text="${status == 404} ? 'Pagina no encontrada' : 'Ocurrio un error'">Ocurrio un error</h1>
-        <p>Vuelve al <a th:href="@{/home}">inicio</a> para seguir navegando.</p>
+<main class="contenedor hoja-contenedor">
+    <section class="hoja">
+        <p class="error-codigo" th:text="${status}">404</p>
+        <h1 class="titulo-pagina" th:text="${status == 404} ? 'Esta página no existe' : 'Algo falló al cargar la página'">Algo falló al cargar la página</h1>
+        <p th:text="${status == 404} ? 'Puede que el evento ya no esté publicado o que el enlace esté incompleto.' : 'Inténtalo de nuevo en unos minutos.'">Inténtalo de nuevo en unos minutos.</p>
+        <a class="boton" th:href="@{/home}">Ir al inicio</a>
     </section>
 </main>
 <footer th:replace="~{fragments :: footer}"></footer>

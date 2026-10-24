@@ -5,45 +5,69 @@
 <header th:replace="~{fragments :: header}"></header>
 
 <main>
-    <section class="hero">
-        <div class="contenedor">
-            <h1>Todos los eventos gamer de Chile en un solo lugar</h1>
-            <p>Torneos, convenciones, LAN parties y lanzamientos. Encuentra tu proximo evento, comparte con tu comunidad y participa.</p>
-            <div sec:authorize="isAnonymous()" class="hero-acciones">
-                <a class="boton" th:href="@{/registro}">Crear cuenta gratis</a>
-                <a class="boton boton-secundario" th:href="@{/login}">Ya tengo cuenta</a>
+    <section class="portada">
+        <div class="contenedor portada-grid">
+            <div class="portada-texto">
+                <h1>La cartelera de eventos gamer de Chile</h1>
+                <p class="bajada">Torneos, LAN parties, ferias retro y lanzamientos de todo el país. Revisa qué viene, dónde es y cómo llegar.</p>
+                <div sec:authorize="isAnonymous()" class="acciones">
+                    <a class="boton" th:href="@{/registro}">Crear cuenta</a>
+                    <a class="boton boton-linea" th:href="@{/login}">Ya tengo cuenta</a>
+                </div>
+                <div sec:authorize="isAuthenticated()" class="acciones">
+                    <p class="saludo">Hola, <span sec:authentication="name">usuario</span>.</p>
+                    <a class="boton" th:href="@{/eventos}">Buscar eventos</a>
+                </div>
             </div>
-            <div sec:authorize="isAuthenticated()" class="hero-acciones">
-                <p class="saludo">Hola, <span sec:authentication="name">usuario</span>.</p>
-                <a class="boton" th:href="@{/eventos}">Buscar eventos</a>
-            </div>
+
+            <a class="afiche" th:if="${!#lists.isEmpty(proximos)}" th:with="e=${proximos[0]}"
+               th:href="@{/eventos/{id}(id=${e.id()})}">
+                <span class="afiche-rotulo">El próximo evento</span>
+                <span class="afiche-fecha" aria-hidden="true"
+                      th:with="texto=${#temporals.format(e.fecha(), 'd') + ' ' + #strings.replace(#temporals.format(e.fecha(), 'MMM'), '.', '')}">
+                    <span class="tinta-rosa" th:text="${texto}">14 nov</span>
+                    <span class="tinta-verde" th:text="${texto}">14 nov</span>
+                </span>
+                <span class="afiche-nombre" th:text="${e.nombre()}">Santiago Gaming Fest 2026</span>
+                <span class="afiche-lugar">
+                    <time th:datetime="${e.fecha()}" th:text="${#strings.capitalize(#temporals.format(e.fecha(), 'EEEE d ''de'' MMMM')) + ', ' + #temporals.format(e.hora(), 'HH:mm')}">Sábado 14 de noviembre, 10:00</time>
+                    <span th:text="${'en ' + e.ciudad()}">en Santiago</span>
+                </span>
+            </a>
         </div>
     </section>
 
     <section class="contenedor seccion">
-        <h2>Proximos eventos</h2>
-        <div class="grilla">
-            <th:block th:each="evento : ${proximos}"><article th:replace="~{fragments :: tarjeta(${evento})}"></article></th:block>
-        </div>
-        <p th:if="${#lists.isEmpty(proximos)}" class="vacio">No hay eventos proximos publicados.</p>
+        <h2>Próximos eventos</h2>
+        <ol class="cartelera" th:unless="${#lists.isEmpty(proximos)}">
+            <th:block th:each="evento : ${proximos}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
+        </ol>
+        <p th:if="${#lists.isEmpty(proximos)}" class="vacio">Todavía no hay eventos publicados para las próximas semanas.</p>
+    </section>
+
+    <section class="contenedor seccion" th:unless="${#lists.isEmpty(destacados)}">
+        <h2>Destacados</h2>
+        <ul class="afiches">
+            <li th:each="evento : ${destacados}" class="afiche-chico">
+                <a th:href="@{/eventos/{id}(id=${evento.id()})}">
+                    <span class="afiche-chico-categoria" th:text="${evento.categoria()}">Torneo</span>
+                    <span class="afiche-chico-nombre" th:text="${evento.nombre()}">Nombre del evento</span>
+                    <span class="afiche-chico-lugar"
+                          th:text="${#temporals.format(evento.fecha(), 'd ''de'' MMMM') + ', ' + evento.ciudad()}">14 de noviembre, Santiago</span>
+                </a>
+            </li>
+        </ul>
     </section>
 
     <section class="contenedor seccion">
-        <h2>Eventos destacados</h2>
-        <div class="grilla">
-            <th:block th:each="evento : ${destacados}"><article th:replace="~{fragments :: tarjeta(${evento})}"></article></th:block>
-        </div>
-    </section>
-
-    <section class="contenedor seccion">
-        <h2>Marcas asociadas</h2>
-        <div class="grilla grilla-marcas">
-            <div th:each="marca : ${marcas}" class="marca">
-                <span class="marca-rubro" th:text="${marca.rubro()}">Rubro</span>
-                <h3 th:text="${marca.nombre()}">Marca</h3>
-                <p th:text="${marca.eslogan()}">Eslogan</p>
-            </div>
-        </div>
+        <h2>Marcas que auspician</h2>
+        <ul class="avisos">
+            <li th:each="marca : ${marcas}" class="aviso-marca">
+                <span class="aviso-rubro" th:text="${marca.rubro()}">Rubro</span>
+                <span class="aviso-nombre" th:text="${marca.nombre()}">Marca</span>
+                <span class="aviso-eslogan" th:text="${marca.eslogan()}">Eslogan</span>
+            </li>
+        </ul>
     </section>
 </main>
 

@@ -4,23 +4,27 @@
 <body>
 <header th:replace="~{fragments :: header}"></header>
 
-<main class="contenedor contenedor-medio">
-    <section class="panel">
+<main class="contenedor hoja-contenedor hoja-ancha">
+    <section class="hoja">
         <div class="perfil-cabecera">
-            <span class="avatar avatar-grande" th:classappend="${perfil.avatar}"
+            <span class="avatar avatar-grande" th:classappend="${perfil.avatar}" aria-hidden="true"
                   th:text="${#strings.toUpperCase(#strings.substring(nombre, 0, 1))}">A</span>
             <div>
-                <h1 th:text="${nombre}">Nombre</h1>
-                <p class="meta" th:text="${'@' + perfil.nombreUsuario}">@usuario</p>
+                <h1 class="titulo-pagina" th:text="${nombre}">Nombre</h1>
+                <p class="perfil-usuario" th:text="${'@' + perfil.nombreUsuario}">@usuario</p>
             </div>
         </div>
 
-        <div th:if="${param.guardado}" class="alerta alerta-ok">Perfil guardado.</div>
+        <p th:if="${param.guardado}" class="aviso aviso-ok" role="status">Perfil guardado.</p>
 
         <form th:action="@{/perfil}" th:object="${perfil}" method="post" class="formulario">
-            <label for="nombreUsuario">Nombre de usuario</label>
-            <input id="nombreUsuario" type="text" th:field="*{nombreUsuario}" minlength="3" maxlength="20" required>
-            <p class="error-campo" th:if="${#fields.hasErrors('nombreUsuario')}" th:errors="*{nombreUsuario}"></p>
+            <div class="campo" th:classappend="${#fields.hasErrors('nombreUsuario')} ? 'con-error'">
+                <label for="nombreUsuario">Nombre de usuario</label>
+                <input id="nombreUsuario" type="text" th:field="*{nombreUsuario}" minlength="3" maxlength="20" required
+                       aria-describedby="ayuda-usuario">
+                <p class="ayuda" id="ayuda-usuario">Entre 3 y 20 caracteres: letras, números, punto o guiones.</p>
+                <p class="error-campo" th:if="${#fields.hasErrors('nombreUsuario')}" th:errors="*{nombreUsuario}"></p>
+            </div>
 
             <fieldset>
                 <legend>Avatar</legend>
@@ -29,15 +33,16 @@
                         <input type="radio" th:field="*{avatar}" th:value="${'avatar-' + i}">
                         <span class="avatar" th:classappend="${'avatar-' + i}"
                               th:text="${#strings.toUpperCase(#strings.substring(nombre, 0, 1))}">A</span>
+                        <span class="solo-lector" th:text="${'Avatar ' + i}">Avatar 1</span>
                     </label>
                 </div>
                 <p class="error-campo" th:if="${#fields.hasErrors('avatar')}" th:errors="*{avatar}"></p>
             </fieldset>
 
             <fieldset>
-                <legend>Juegos de interes</legend>
-                <div class="opciones-check">
-                    <label th:each="juego : ${juegosDisponibles}">
+                <legend>Juegos que te interesan</legend>
+                <div class="opciones-juegos">
+                    <label th:each="juego : ${juegosDisponibles}" class="opcion-juego">
                         <input type="checkbox" th:field="*{juegosInteres}" th:value="${juego}">
                         <span th:text="${juego}">Juego</span>
                     </label>
@@ -48,8 +53,8 @@
                 <legend>Notificaciones</legend>
                 <div class="opciones-check">
                     <label><input type="checkbox" th:field="*{notificarCorreo}"> Recibir notificaciones por correo</label>
-                    <label><input type="checkbox" th:field="*{notificarNuevosEventos}"> Avisarme de nuevos eventos de mis juegos</label>
-                    <label><input type="checkbox" th:field="*{notificarRecordatorios}"> Recordatorio un dia antes de cada evento</label>
+                    <label><input type="checkbox" th:field="*{notificarNuevosEventos}"> Avisarme de eventos nuevos de mis juegos</label>
+                    <label><input type="checkbox" th:field="*{notificarRecordatorios}"> Recordarme un día antes de cada evento</label>
                 </div>
             </fieldset>
 

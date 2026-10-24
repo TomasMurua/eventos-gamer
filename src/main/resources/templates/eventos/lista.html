@@ -5,42 +5,47 @@
 <header th:replace="~{fragments :: header}"></header>
 
 <main class="contenedor seccion">
-    <h1>Eventos publicados</h1>
+    <h1 class="titulo-pagina">Eventos</h1>
 
-    <form th:action="@{/eventos}" method="get" class="filtros">
-        <div>
-            <label for="categoria">Categoria</label>
+    <form th:action="@{/eventos}" method="get" class="filtros" aria-label="Buscar eventos">
+        <div class="campo">
+            <label for="categoria">Categoría</label>
             <select id="categoria" name="categoria">
                 <option value="">Todas</option>
                 <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}" th:selected="${c == categoria}"></option>
             </select>
         </div>
-        <div>
-            <label for="ciudad">Ubicacion</label>
+        <div class="campo">
+            <label for="ciudad">Ciudad</label>
             <select id="ciudad" name="ciudad">
                 <option value="">Todas</option>
                 <option th:each="c : ${ciudades}" th:value="${c}" th:text="${c}" th:selected="${c == ciudad}"></option>
             </select>
         </div>
-        <div>
+        <div class="campo">
             <label for="desde">Desde</label>
             <input id="desde" type="date" name="desde" th:value="${desde}">
         </div>
-        <div>
+        <div class="campo">
             <label for="hasta">Hasta</label>
             <input id="hasta" type="date" name="hasta" th:value="${hasta}">
         </div>
         <div class="filtros-acciones">
             <button type="submit" class="boton">Buscar</button>
-            <a class="boton boton-secundario" th:href="@{/eventos}">Limpiar</a>
+            <a class="boton boton-linea" th:href="@{/eventos}">Limpiar filtros</a>
         </div>
     </form>
 
-    <p class="meta" th:text="${#lists.size(eventos) + ' evento(s) encontrados'}">0 eventos</p>
-    <div class="grilla">
-        <th:block th:each="evento : ${eventos}"><article th:replace="~{fragments :: tarjeta(${evento})}"></article></th:block>
+    <p class="conteo" role="status"
+       th:text="${#lists.size(eventos) == 1} ? '1 evento' : ${#lists.size(eventos) + ' eventos'}">7 eventos</p>
+
+    <ol class="cartelera" th:unless="${#lists.isEmpty(eventos)}">
+        <th:block th:each="evento : ${eventos}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
+    </ol>
+    <div th:if="${#lists.isEmpty(eventos)}" class="vacio">
+        <p>No hay eventos con esos filtros. Prueba con otra ciudad o amplía las fechas.</p>
+        <a class="boton boton-linea" th:href="@{/eventos}">Ver todos los eventos</a>
     </div>
-    <p th:if="${#lists.isEmpty(eventos)}" class="vacio">No hay eventos que coincidan con la busqueda.</p>
 </main>
 
 <footer th:replace="~{fragments :: footer}"></footer>

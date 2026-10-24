@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import org.springframework.stereotype.Service;
 
 /**
- * Catalogo de eventos en memoria. En las proximas semanas se reemplaza por la capa de base de datos.
+ * Catalogo de eventos en memoria.
  */
 @Service
 public class EventoService {

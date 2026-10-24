@@ -58,6 +58,12 @@ class SeguridadRutasTest {
     }
 
     @Test
+    void adminLlamNoExisteSinVariableDeEntorno() throws Exception {
+        mvc.perform(formLogin("/login").user("llam").password("cualquier-clave"))
+                .andExpect(unauthenticated());
+    }
+
+    @Test
     void contrasenaIncorrectaEsRechazada() throws Exception {
         mvc.perform(formLogin("/login").user("ana@eventosgamer.cl").password("incorrecta"))
                 .andExpect(unauthenticated())

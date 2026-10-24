@@ -4,37 +4,55 @@
 <body>
 <header th:replace="~{fragments :: header}"></header>
 
-<main class="contenedor contenedor-medio seccion">
-    <a class="enlace" th:href="@{/eventos}">&larr; Volver a eventos</a>
+<main class="contenedor seccion">
+    <a class="volver" th:href="@{/eventos}">Volver a eventos</a>
 
-    <article class="panel detalle">
-        <span class="etiqueta" th:text="${evento.categoria()}">Categoria</span>
-        <h1 th:text="${evento.nombre()}">Nombre del evento</h1>
-        <p th:text="${evento.descripcion()}">Descripcion</p>
+    <article class="detalle">
+        <header class="detalle-cabecera">
+            <p class="detalle-categoria" th:text="${evento.categoria()}">Categoría</p>
+            <h1 th:text="${evento.nombre()}">Nombre del evento</h1>
+            <p class="detalle-cuando">
+                <time th:datetime="${evento.fecha() + 'T' + evento.hora()}"
+                      th:text="${#strings.capitalize(#temporals.format(evento.fecha(), 'EEEE d ''de'' MMMM ''de'' yyyy')) + ', ' + #temporals.format(evento.hora(), 'HH:mm')}">Sábado 14 de noviembre de 2026, 10:00</time>
+            </p>
+        </header>
 
-        <dl class="datos">
-            <dt>Fecha y hora</dt>
-            <dd th:text="${#temporals.format(evento.fecha(), 'dd/MM/yyyy') + ' a las ' + #temporals.format(evento.hora(), 'HH:mm')}">01/01/2026 a las 10:00</dd>
-            <dt>Direccion</dt>
-            <dd th:text="${evento.direccion() + ', ' + evento.ciudad()}">Direccion</dd>
-            <dt>Organizadores</dt>
-            <dd th:text="${#strings.listJoin(evento.organizadores(), ', ')}">Organizadores</dd>
-            <dt>Principales expositores</dt>
-            <dd>
-                <ul><li th:each="e : ${evento.expositores()}" th:text="${e}">Expositor</li></ul>
-            </dd>
-        </dl>
+        <div class="detalle-grid">
+            <div class="detalle-texto">
+                <p class="detalle-bajada" th:text="${evento.descripcion()}">Descripción</p>
 
-        <h2>Servicios disponibles</h2>
-        <ul class="servicios">
-            <li th:classappend="${evento.servicios().estacionamiento()} ? 'si' : 'no'">
-                Estacionamiento: <strong th:text="${evento.servicios().estacionamiento()} ? 'Si' : 'No'">Si</strong></li>
-            <li class="si">Locomocion colectiva: <strong th:text="${evento.servicios().locomocionColectiva()}">Metro</strong></li>
-            <li th:classappend="${evento.servicios().comida()} ? 'si' : 'no'">
-                Servicio de comidas: <strong th:text="${evento.servicios().comida()} ? 'Si' : 'No'">Si</strong></li>
-            <li th:classappend="${evento.servicios().alojamiento()} ? 'si' : 'no'">
-                Alojamiento: <strong th:text="${evento.servicios().alojamiento()} ? 'Si' : 'No'">No</strong></li>
-        </ul>
+                <h2>Principales expositores</h2>
+                <ul class="lista-simple">
+                    <li th:each="e : ${evento.expositores()}" th:text="${e}">Expositor</li>
+                </ul>
+
+                <h2>Organizan</h2>
+                <ul class="lista-simple">
+                    <li th:each="o : ${evento.organizadores()}" th:text="${o}">Organizador</li>
+                </ul>
+            </div>
+
+            <aside class="como-llegar" aria-labelledby="titulo-llegar">
+                <h2 id="titulo-llegar">Cómo llegar</h2>
+                <p class="direccion" th:text="${evento.direccion() + ', ' + evento.ciudad()}">Dirección</p>
+
+                <h3>Locomoción colectiva</h3>
+                <p th:text="${evento.servicios().locomocionColectiva()}">Metro</p>
+
+                <h3>Servicios disponibles</h3>
+                <ul class="servicios">
+                    <li th:classappend="${evento.servicios().estacionamiento()} ? 'si' : 'no'">
+                        <span>Estacionamiento</span>
+                        <strong th:text="${evento.servicios().estacionamiento()} ? 'Sí' : 'No'">Sí</strong></li>
+                    <li th:classappend="${evento.servicios().comida()} ? 'si' : 'no'">
+                        <span>Servicio de comidas</span>
+                        <strong th:text="${evento.servicios().comida()} ? 'Sí' : 'No'">Sí</strong></li>
+                    <li th:classappend="${evento.servicios().alojamiento()} ? 'si' : 'no'">
+                        <span>Alojamiento</span>
+                        <strong th:text="${evento.servicios().alojamiento()} ? 'Sí' : 'No'">No</strong></li>
+                </ul>
+            </aside>
+        </div>
     </article>
 </main>
 

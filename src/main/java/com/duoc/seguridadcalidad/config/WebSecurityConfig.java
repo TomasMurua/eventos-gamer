@@ -1,11 +1,15 @@
 package com.duoc.seguridadcalidad.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -16,10 +20,10 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class WebSecurityConfig {
 
-    /** Rutas publicas del caso: inicio, registro y login. Todo lo demas requiere autenticacion. */
+    /** Rutas publicas: inicio, registro y login. Todo lo demas requiere autenticacion. */
     private static final String[] RUTAS_PUBLICAS = {
             "/", "/home", "/recetas", "/registro", "/login", "/error",
-            "/css/**", "/img/**", "/favicon.ico"
+            "/css/**", "/img/**", "/fonts/**", "/favicon.ico"
     };
 
     @Bean
@@ -51,8 +55,9 @@ public class WebSecurityConfig {
     public UserDetailsManager userDetailsManager(
             PasswordEncoder passwordEncoder,
             @Value("${app.usuarios.password-usuario}") String passwordUsuario,
-            @Value("${app.usuarios.password-admin}") String passwordAdmin) {
-        return new InMemoryUserDetailsManager(
+            @Value("${app.usuarios.password-admin}") String passwordAdmin,
+            @Value("${app.usuarios.password-llam:}") String passwordLlam) {
+        List<UserDetails> usuarios = new ArrayList<>(List.of(
                 User.builder()
                         .username("ana@eventosgamer.cl")
                         .password(passwordEncoder.encode(passwordUsuario))
@@ -67,7 +72,15 @@ public class WebSecurityConfig {
                         .username("admin@eventosgamer.cl")
                         .password(passwordEncoder.encode(passwordAdmin))
                         .roles("USER", "ADMIN")
-                        .build());
+                        .build()));
+        if (!passwordLlam.isBlank()) {
+            usuarios.add(User.builder()
+                    .username("llam")
+                    .password(passwordEncoder.encode(passwordLlam))
+                    .roles("USER", "ADMIN")
+                    .build());
+        }
+        return new InMemoryUserDetailsManager(usuarios);
     }
 
     @Bean

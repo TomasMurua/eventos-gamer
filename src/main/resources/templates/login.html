@@ -4,24 +4,28 @@
 <body>
 <header th:replace="~{fragments :: header}"></header>
 
-<main class="contenedor contenedor-angosto">
-    <section class="panel">
-        <h1>Ingresar</h1>
+<main class="contenedor hoja-contenedor">
+    <section class="hoja">
+        <h1 class="titulo-pagina">Ingresar</h1>
+        <p class="hoja-bajada">Con tu cuenta ves todos los eventos y armas tu perfil.</p>
 
-        <div th:if="${param.error}" class="alerta alerta-error">Correo o contrasena incorrectos.</div>
-        <div th:if="${param.logout}" class="alerta alerta-ok">Cerraste sesion correctamente.</div>
-        <div th:if="${param.registrado}" class="alerta alerta-ok">Cuenta creada. Ya puedes ingresar.</div>
+        <p th:if="${param.error}" class="aviso aviso-error" role="alert">El usuario o la contraseña no coinciden. Revisa ambos e inténtalo otra vez.</p>
+        <p th:if="${param.logout}" class="aviso aviso-ok" role="status">Cerraste sesión.</p>
+        <p th:if="${param.registrado}" class="aviso aviso-ok" role="status">Cuenta creada. Ya puedes ingresar.</p>
 
         <form th:action="@{/login}" method="post" class="formulario">
-            <label for="username">Correo</label>
-            <input id="username" type="email" name="username" autocomplete="username" required autofocus>
-
-            <label for="password">Contrasena</label>
-            <input id="password" type="password" name="password" autocomplete="current-password" required>
-
+            <div class="campo">
+                <label for="username">Correo o usuario</label>
+                <input id="username" type="text" name="username" autocomplete="username" autocapitalize="none"
+                       spellcheck="false" required autofocus>
+            </div>
+            <div class="campo">
+                <label for="password">Contraseña</label>
+                <input id="password" type="password" name="password" autocomplete="current-password" required>
+            </div>
             <button type="submit" class="boton">Ingresar</button>
         </form>
-        <p class="nota">¿No tienes cuenta? <a th:href="@{/registro}">Registrate</a></p>
+        <p class="hoja-nota">¿No tienes cuenta? <a th:href="@{/registro}">Crea una aquí</a>.</p>
     </section>
 </main>
 
