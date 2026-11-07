@@ -54,8 +54,12 @@ class ApiSeguridadTest {
     }
 
     ResultActions login(String usuario, String password) throws Exception {
+        return login(usuario, password, "10.0.0." + Math.abs(usuario.hashCode() % 200));
+    }
+
+    ResultActions login(String usuario, String password, String ip) throws Exception {
         return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .with(r -> { r.setRemoteAddr("10.0.0." + Math.abs(usuario.hashCode() % 200)); return r; })
+                .with(r -> { r.setRemoteAddr(ip); return r; })
                 .content("{\"username\":\"" + usuario + "\",\"password\":\"" + password + "\"}"));
     }
 
@@ -73,12 +77,26 @@ class ApiSeguridadTest {
     }
 
     @Test
-    void bloqueaTrasCincoIntentosFallidos() throws Exception {
+    void bloqueaTrasCincoIntentosFallidosDesdeLaMismaIp() throws Exception {
+        String ip = "10.1.1.1";
+        // Alternar usuario y correo no reinicia el contador: los dos apuntan a la misma cuenta
         for (int i = 0; i < 5; i++) {
-            login("diego", "incorrecta-" + i).andExpect(status().isUnauthorized());
+            login(i % 2 == 0 ? "diego" : "DIEGO@eventosgamer.cl", "incorrecta-" + i, ip)
+                    .andExpect(status().isUnauthorized());
         }
-        // Bloqueado aunque ahora la clave sea la correcta
-        login("diego", "Gamer2026!").andExpect(status().isTooManyRequests());
+        // Bloqueado desde esa IP aunque ahora la clave sea la correcta
+        login("diego", "Gamer2026!", ip).andExpect(status().isTooManyRequests());
+        // El dueno de la cuenta, desde otra IP, sigue pudiendo entrar
+        login("diego", "Gamer2026!", "10.2.2.2").andExpect(status().isOk());
+    }
+
+    @Test
+    void bloqueaUnaIpQueProbaMuchasCuentas() throws Exception {
+        String ip = "10.3.3.3";
+        for (int i = 0; i < 20; i++) {
+            login("cuenta-" + i, "x", ip).andExpect(status().isUnauthorized());
+        }
+        login("ana", "Gamer2026!", ip).andExpect(status().isTooManyRequests());
     }
 
     @Test

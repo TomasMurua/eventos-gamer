@@ -89,9 +89,9 @@ La tabla agrupa las medidas segun la categoria del OWASP Top 10 2021 que cubren.
 | A04 Diseno inseguro | Separacion en capas, el backend y la base de datos no se exponen; detalle de eventos solo con token |
 | A05 Configuracion incorrecta | Sin modo debug ni usuario por defecto de Spring; paginas de error sin stack traces; cabeceras CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy y Permissions-Policy; contenedores sin root, de solo lectura y sin capacidades extra; sin claves en el codigo |
 | A06 Componentes vulnerables | Spring Boot 3.5.16 y dependencias en su ultima version de parche; imagenes base oficiales |
-| A07 Fallas de autenticacion | Mismo mensaje para usuario inexistente o clave incorrecta; bloqueo de 15 minutos tras 5 intentos fallidos, contados por usuario y por IP; tokens de 30 minutos con emisor verificado; cuentas inactivas no pueden ingresar |
+| A07 Fallas de autenticacion | Mismo mensaje para usuario inexistente o clave incorrecta; bloqueo de 15 minutos tras 5 fallos de una cuenta desde la misma IP o 20 fallos desde una IP, sin dejar fuera al dueno de la cuenta que entra desde otra red; tokens de 30 minutos con emisor verificado; cuentas inactivas no pueden ingresar |
 | A08 Integridad de software y datos | Tokens firmados con HS256 y algoritmo fijo; dependencias desde Maven Central con el wrapper versionado |
-| A09 Registro y monitoreo | Registro de logins exitosos y fallidos, bloqueos, tokens invalidos y accesos denegados, sin contrasenas ni tokens en los logs |
+| A09 Registro y monitoreo | Registro de logins exitosos y fallidos, bloqueos, tokens invalidos y accesos denegados, sin contrasenas ni tokens y con los textos del usuario saneados antes de escribirlos |
 | A10 SSRF | El servidor no descarga URLs que entregue el usuario; el backend solo es alcanzable desde la red interna |
 
 ## Ejecutar en local

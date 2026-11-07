@@ -49,29 +49,38 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
         String ip = http.getRemoteAddr();
-        String nombre = request.username().trim();
-        if (intentos.bloqueado(nombre, ip)) {
-            log.warn("Login bloqueado por exceso de intentos: usuario={} ip={}", nombre, ip);
+        Optional<Usuario> encontrado = usuarios.findFirstByUsernameIgnoreCaseOrEmailIgnoreCase(
+                request.username().trim(), request.username().trim());
+        // El contador usa la cuenta real (asi "ana" y "ana@eventosgamer.cl" suman al mismo contador)
+        String cuenta = encontrado.map(Usuario::getUsername).orElse(IntentosLogin.normalizar(request.username()));
+
+        if (intentos.bloqueado(cuenta, ip)) {
+            log.warn("Login bloqueado por exceso de intentos: cuenta={} ip={}", paraLog(cuenta), ip);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(new ErrorRespuesta(429, "Demasiados intentos fallidos. Espera unos minutos."));
         }
 
-        Optional<Usuario> encontrado = usuarios.findFirstByUsernameIgnoreCaseOrEmailIgnoreCase(nombre, nombre);
         String hash = encontrado.map(Usuario::getPasswordHash).orElse(hashFicticio);
         boolean claveValida = passwordEncoder.matches(request.password(), hash);
 
         if (encontrado.isEmpty() || !claveValida || !encontrado.get().isActivo()) {
-            intentos.registrarFallo(nombre, ip);
-            log.warn("Login fallido: usuario={} ip={}", nombre, ip);
+            intentos.registrarFallo(cuenta, ip);
+            log.warn("Login fallido: cuenta={} ip={}", paraLog(cuenta), ip);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorRespuesta(401, CREDENCIALES_INVALIDAS));
         }
 
         Usuario usuario = encontrado.get();
-        intentos.registrarExito(nombre, ip);
-        log.info("Login exitoso: usuario={} ip={}", usuario.getUsername(), ip);
+        intentos.registrarExito(cuenta, ip);
+        log.info("Login exitoso: cuenta={} ip={}", usuario.getUsername(), ip);
         String token = jwtService.generar(usuario);
         return ResponseEntity.ok(new LoginResponse(token, "Bearer", jwtService.duracionEnSegundos(),
                 usuario.getUsername(), usuario.getNombre(), usuario.getRol()));
+    }
+
+    /** Quita saltos de linea y caracteres de control (evita falsificar lineas del log) y limita el largo. */
+    static String paraLog(String texto) {
+        String limpio = texto.replaceAll("[\\p{Cntrl}]", "_");
+        return limpio.length() > 40 ? limpio.substring(0, 40) + "..." : limpio;
     }
 }

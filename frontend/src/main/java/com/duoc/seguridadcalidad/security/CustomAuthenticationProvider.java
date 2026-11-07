@@ -37,7 +37,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         String ip = authentication.getDetails() instanceof WebAuthenticationDetails d ? d.getRemoteAddress() : null;
 
         LoginResponse respuesta = backend.login(nombre, password, ip).orElseThrow(() -> {
-            log.warn("Login web rechazado: usuario={} ip={}", nombre, ip);
+            log.warn("Login web rechazado: usuario={} ip={}", paraLog(nombre), ip);
             return new BadCredentialsException("Usuario o contraseña incorrectos");
         });
 
@@ -50,5 +50,11 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
     @Override
     public boolean supports(Class<?> authentication) {
         return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
+    }
+
+    /** Quita saltos de linea y caracteres de control del texto que escribio el usuario y limita el largo. */
+    static String paraLog(String texto) {
+        String limpio = texto.replaceAll("[\\p{Cntrl}]", "_");
+        return limpio.length() > 40 ? limpio.substring(0, 40) + "..." : limpio;
     }
 }
