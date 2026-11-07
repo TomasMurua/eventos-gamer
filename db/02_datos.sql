@@ -2,12 +2,13 @@
 USE eventos_gamer;
 SET NAMES utf8mb4;
 
--- Usuarios de prueba. Las contrasenas se guardan con BCrypt (costo 10):
--- ana y diego: Gamer2026!   admin: Admin2026!
+-- Usuarios de prueba. Las contrasenas se guardan con hash BCrypt.
+-- ana y diego son cuentas de prueba con rol USER (clave documentada en el README).
+-- admin no trae una clave usable: la API se la asigna al arrancar desde APP_PASSWORD_ADMIN.
 INSERT INTO usuarios (username, email, nombre, password_hash, rol, juegos_interes) VALUES
 ('ana',   'ana@eventosgamer.cl',   'Ana Rojas',     '$2a$10$QKOQk.Yw5AQZq5ptX.ISuO5RcRNbg6heS51r9LUSJk3/y1/t4DG86', 'USER',  'Street Fighter 6, Tekken 8'),
 ('diego', 'diego@eventosgamer.cl', 'Diego Fuentes', '$2a$10$QKOQk.Yw5AQZq5ptX.ISuO5RcRNbg6heS51r9LUSJk3/y1/t4DG86', 'USER',  'League of Legends, Valorant'),
-('admin', 'admin@eventosgamer.cl', 'Administración LJCS', '$2a$10$V/fjP0dB1hJ3E.T8WLlPGu3Xr.FkE4htC0GfemU6DwD4HCL/f7w6K', 'ADMIN', NULL);
+('admin', 'admin@eventosgamer.cl', 'Administración LJCS', '!definir-con-APP_PASSWORD_ADMIN', 'ADMIN', NULL);
 
 INSERT INTO eventos (id, nombre, videojuego, categoria, modalidad, pais, ciudad, fecha_hora, ubicacion, enlace_acceso,
                      organizador, resumen, descripcion, requisitos, inscripcion, cupos, popularidad, destacado, publicado_en) VALUES

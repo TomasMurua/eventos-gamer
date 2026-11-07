@@ -60,6 +60,10 @@
         </div>
     </form>
 
+    <div th:unless="${#lists.isEmpty(errores)}" class="aviso aviso-error" role="alert">
+        <p th:each="e : ${errores}" th:text="${e}">Filtro no válido</p>
+    </div>
+
     <p class="conteo" role="status"
        th:text="${#lists.size(eventos) == 1} ? '1 evento' : ${#lists.size(eventos) + ' eventos'}">10 eventos</p>
 

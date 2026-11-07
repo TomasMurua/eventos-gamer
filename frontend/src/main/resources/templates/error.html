@@ -6,7 +6,7 @@
 <main class="contenedor hoja-contenedor">
     <section class="hoja">
         <p class="error-codigo" th:text="${status}">404</p>
-        <h1 class="titulo-pagina" th:text="${status == 404} ? 'Esta página no existe' : 'Algo falló al cargar la página'">Algo falló al cargar la página</h1>
+        <h1 class="titulo-pagina" th:text="${status == 404} ? 'Esta página no existe' : (${status == 403} ? 'No tienes acceso a esta página' : (${status == 400} ? 'La solicitud no es válida' : 'Algo falló al cargar la página'))">Algo falló al cargar la página</h1>
         <p th:text="${status == 404} ? 'Puede que el evento ya no esté publicado o que el enlace esté incompleto.' : 'Inténtalo de nuevo en unos minutos.'">Inténtalo de nuevo en unos minutos.</p>
         <a class="boton" th:href="@{/eventos}">Ir al inicio</a>
     </section>

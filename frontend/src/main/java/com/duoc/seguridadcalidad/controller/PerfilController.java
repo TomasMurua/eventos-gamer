@@ -1,7 +1,8 @@
 package com.duoc.seguridadcalidad.controller;
 
 import com.duoc.seguridadcalidad.backend.BackendClient;
-import com.duoc.seguridadcalidad.security.TokenStore;
+import com.duoc.seguridadcalidad.security.SesionUsuario;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,24 +11,22 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class PerfilController {
 
     private final BackendClient backend;
-    private final TokenStore tokenStore;
 
-    public PerfilController(BackendClient backend, TokenStore tokenStore) {
+    public PerfilController(BackendClient backend) {
         this.backend = backend;
-        this.tokenStore = tokenStore;
     }
 
     /** Privada: datos del usuario que inicio sesion. */
     @GetMapping("/perfil")
-    public String perfil(Model model) {
-        model.addAttribute("usuario", backend.yo(tokenStore.getToken()));
+    public String perfil(@AuthenticationPrincipal SesionUsuario sesion, Model model) {
+        model.addAttribute("usuario", backend.yo(sesion.token()));
         return "perfil";
     }
 
     /** Solo ADMIN: usuarios registrados en la plataforma. */
     @GetMapping("/admin/usuarios")
-    public String usuarios(Model model) {
-        model.addAttribute("usuarios", backend.usuarios(tokenStore.getToken()));
+    public String usuarios(@AuthenticationPrincipal SesionUsuario sesion, Model model) {
+        model.addAttribute("usuarios", backend.usuarios(sesion.token()));
         return "admin/usuarios";
     }
 }

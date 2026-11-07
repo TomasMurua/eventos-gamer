@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.emptyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,16 +48,37 @@ class ApiSeguridadTest {
                 .andExpect(jsonPath("$.token", not(emptyString())))
                 .andExpect(jsonPath("$.tipo").value("Bearer"))
                 .andExpect(jsonPath("$.rol").value("USER"));
-        token("diego", "Gamer2026!");
-        token("admin", "Admin2026!");
+        token("ana@eventosgamer.cl", "Gamer2026!");
+        token("admin", "AdminPruebas2026!");
         token("llam", "ClaveLlamPruebas1!");
     }
 
+    ResultActions login(String usuario, String password) throws Exception {
+        return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .with(r -> { r.setRemoteAddr("10.0.0." + Math.abs(usuario.hashCode() % 200)); return r; })
+                .content("{\"username\":\"" + usuario + "\",\"password\":\"" + password + "\"}"));
+    }
+
     @Test
-    void loginConClaveIncorrectaResponde401() throws Exception {
-        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"ana\",\"password\":\"otra\"}"))
-                .andExpect(status().isUnauthorized());
+    void loginFallidoNoRevelaSiElUsuarioExiste() throws Exception {
+        login("ana", "otra").andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Usuario o contraseña incorrectos"));
+        login("no-existe", "otra").andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Usuario o contraseña incorrectos"));
+    }
+
+    @Test
+    void adminSinClaveDelEntornoNoUsaLaDelScript() throws Exception {
+        login("admin", "Admin2026!").andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void bloqueaTrasCincoIntentosFallidos() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            login("diego", "incorrecta-" + i).andExpect(status().isUnauthorized());
+        }
+        // Bloqueado aunque ahora la clave sea la correcta
+        login("diego", "Gamer2026!").andExpect(status().isTooManyRequests());
     }
 
     @Test
@@ -98,18 +121,26 @@ class ApiSeguridadTest {
     }
 
     @Test
+    void apiIncluyeCabecerasDeSeguridad() throws Exception {
+        mvc.perform(get("/api/portada"))
+                .andExpect(header().string("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"));
+    }
+
+    @Test
     void soloAdminVeUsuarios() throws Exception {
         mvc.perform(get("/api/admin/usuarios").header("Authorization", "Bearer " + token("ana", "Gamer2026!")))
                 .andExpect(status().isForbidden());
-        mvc.perform(get("/api/admin/usuarios").header("Authorization", "Bearer " + token("admin", "Admin2026!")))
+        mvc.perform(get("/api/admin/usuarios").header("Authorization", "Bearer " + token("admin", "AdminPruebas2026!")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].username").value("ana"));
     }
 
     @Test
     void perfilDelUsuarioAutenticado() throws Exception {
-        mvc.perform(get("/api/usuarios/me").header("Authorization", "Bearer " + token("diego", "Gamer2026!")))
+        mvc.perform(get("/api/usuarios/me").header("Authorization", "Bearer " + token("ana@eventosgamer.cl", "Gamer2026!")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("diego@eventosgamer.cl"));
+                .andExpect(jsonPath("$.email").value("ana@eventosgamer.cl"));
     }
 }

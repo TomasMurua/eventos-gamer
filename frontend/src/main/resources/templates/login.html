@@ -9,8 +9,9 @@
         <h1 class="titulo-pagina">Ingresar</h1>
         <p class="hoja-bajada">Con tu cuenta ves el detalle completo de cada evento.</p>
 
-        <p th:if="${param.error}" class="aviso aviso-error" role="alert">El usuario o la contraseña no coinciden. Revisa ambos e inténtalo otra vez.</p>
+        <p th:if="${param.error}" class="aviso aviso-error" role="alert">El usuario o la contraseña no coinciden. Después de 5 intentos fallidos el acceso se bloquea por 15 minutos.</p>
         <p th:if="${param.logout}" class="aviso aviso-ok" role="status">Cerraste sesión.</p>
+        <p th:if="${param.expirada}" class="aviso aviso-ok" role="status">Tu sesión expiró. Ingresa de nuevo para seguir.</p>
 
         <form th:action="@{/login}" method="post" class="formulario">
             <div class="campo">

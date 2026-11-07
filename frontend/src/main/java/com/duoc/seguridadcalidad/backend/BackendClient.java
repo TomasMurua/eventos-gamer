@@ -30,16 +30,26 @@ public class BackendClient {
         this.http = builder.baseUrl(backendUrl).build();
     }
 
-    /** Devuelve la respuesta del login si las credenciales son validas, o vacio si el backend las rechaza. */
-    public Optional<LoginResponse> login(String username, String password) {
+    /**
+     * Devuelve la respuesta del login si las credenciales son validas, o vacio si el backend las rechaza
+     * (incluido el bloqueo por exceso de intentos). Se reenvia la IP del visitante para que el backend
+     * cuente los intentos fallidos por IP real y no por la del frontend.
+     */
+    public Optional<LoginResponse> login(String username, String password, String ipCliente) {
         try {
             return Optional.ofNullable(http.post().uri("/api/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
+                    .headers(h -> {
+                        if (ipCliente != null) {
+                            h.set("X-Forwarded-For", ipCliente);
+                        }
+                    })
                     .body(Map.of("username", username, "password", password))
                     .retrieve()
                     .body(LoginResponse.class));
         } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED || e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED || e.getStatusCode() == HttpStatus.BAD_REQUEST
+                    || e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                 return Optional.empty();
             }
             throw e;

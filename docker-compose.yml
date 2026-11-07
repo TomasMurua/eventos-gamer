@@ -1,48 +1,83 @@
+# LJCS: proxy HTTPS (Caddy) -> frontend (Thymeleaf) -> backend (API REST + JWT) -> MySQL
+# Solo el proxy publica puertos. Las claves se leen del archivo .env (ver .env.example).
 services:
   db:
     image: mysql:8.4
     environment:
-      MYSQL_ROOT_PASSWORD: ljcs2026
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta MYSQL_ROOT_PASSWORD en .env}
       MYSQL_DATABASE: eventos_gamer
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Falta DB_APP_PASSWORD en .env}
     command: ["--performance-schema=OFF", "--character-set-server=utf8mb4", "--innodb-buffer-pool-size=32M", "--max-connections=40"]
-    ports:
-      - "3306:3306"
     volumes:
       - ./db:/docker-entrypoint-initdb.d:ro
       - datos-mysql:/var/lib/mysql
+    networks: [datos]
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pljcs2026"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
       interval: 10s
       retries: 10
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
 
   backend:
     build: ./backend
-    image: ljcs-backend:s2
+    image: ljcs-backend:s3
     environment:
       DB_HOST: db
+      DB_USER: ljcs_app
+      DB_PASSWORD: ${DB_APP_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env}
+      APP_PASSWORD_USUARIO: ${APP_PASSWORD_USUARIO:-}
+      APP_PASSWORD_ADMIN: ${APP_PASSWORD_ADMIN:?Falta APP_PASSWORD_ADMIN en .env}
+      APP_PASSWORD_LLAM: ${APP_PASSWORD_LLAM:-}
       JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
-    env_file:
-      - path: ./eventos-gamer.env
-        required: false
-    ports:
-      - "8081:8081"
+    networks: [datos, app]
     depends_on:
       db:
         condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
 
   frontend:
     build: ./frontend
-    image: ljcs-frontend:s2
+    image: ljcs-frontend:s3
     environment:
       BACKEND_URL: http://backend:8081
       JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
-    ports:
-      - "80:8080"
-    depends_on:
-      - backend
+    networks: [app]
+    depends_on: [backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
+
+  proxy:
+    image: caddy:2.10-alpine
+    environment:
+      DOMINIO: ${DOMINIO:?Falta DOMINIO en .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-datos:/data
+      - caddy-config:/config
+    networks: [app]
+    depends_on: [frontend]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+networks:
+  # La base de datos queda en una red interna, sin salida a Internet ni puertos publicados
+  datos:
+    internal: true
+  app: {}
 
 volumes:
   datos-mysql:
+  caddy-datos:
+  caddy-config:

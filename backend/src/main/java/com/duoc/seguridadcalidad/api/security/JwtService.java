@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,12 +20,18 @@ import org.springframework.stereotype.Service;
 public class JwtService {
 
     static final String EMISOR = "ljcs-api";
+    static final int LARGO_MINIMO_SECRETO = 32;
 
     private final SecretKey clave;
     private final Duration duracion;
 
-    public JwtService(@Value("${jwt.secret}") String secreto,
-                      @Value("${jwt.expiracion-minutos}") long minutos) {
+    public JwtService(@Value("${jwt.secret:}") String secreto,
+                      @Value("${jwt.expiracion-minutos:30}") long minutos) {
+        // El secreto llega por variable de entorno (JWT_SECRET). Sin un secreto largo la API no arranca.
+        if (secreto == null || secreto.getBytes(StandardCharsets.UTF_8).length < LARGO_MINIMO_SECRETO) {
+            throw new IllegalStateException(
+                    "JWT_SECRET no esta definido o tiene menos de " + LARGO_MINIMO_SECRETO + " bytes");
+        }
         this.clave = Keys.hmacShaKeyFor(secreto.getBytes(StandardCharsets.UTF_8));
         this.duracion = Duration.ofMinutes(minutos);
     }
@@ -32,6 +39,7 @@ public class JwtService {
     public String generar(Usuario usuario) {
         Instant ahora = Instant.now();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .issuer(EMISOR)
                 .subject(usuario.getUsername())
                 .claim("rol", usuario.getRol())
@@ -41,7 +49,7 @@ public class JwtService {
                 .compact();
     }
 
-    /** Devuelve los claims si la firma, el emisor y la expiracion son validos. */
+    /** Devuelve los claims si la firma (solo HS256), el emisor y la expiracion son validos. */
     public Optional<Claims> validar(String token) {
         try {
             return Optional.of(Jwts.parser()

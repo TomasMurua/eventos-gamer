@@ -3,40 +3,48 @@ package com.duoc.seguridadcalidad.security;
 import com.duoc.seguridadcalidad.backend.BackendClient;
 import com.duoc.seguridadcalidad.backend.Dtos.LoginResponse;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.stereotype.Component;
 
-/** Autentica contra la API de login del backend y guarda el token JWT que devuelve. */
+/**
+ * Autentica contra la API de login del backend. El token JWT que devuelve queda dentro de la
+ * autenticacion de la sesion de ese usuario; la contrasena no se guarda ni se escribe en los logs.
+ */
 @Component
 public class CustomAuthenticationProvider implements AuthenticationProvider {
 
-    private final BackendClient backend;
-    private final TokenStore tokenStore;
+    private static final Logger log = LoggerFactory.getLogger("seguridad");
 
-    public CustomAuthenticationProvider(BackendClient backend, TokenStore tokenStore) {
+    private final BackendClient backend;
+
+    public CustomAuthenticationProvider(BackendClient backend) {
         this.backend = backend;
-        this.tokenStore = tokenStore;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String name = authentication.getName();
-        String password = authentication.getCredentials().toString();
-        System.out.println("Login: " + name + " / " + password);
+        String nombre = authentication.getName();
+        String password = authentication.getCredentials() == null ? "" : authentication.getCredentials().toString();
 
-        LoginResponse respuesta = backend.login(name, password)
-                .orElseThrow(() -> new BadCredentialsException("Usuario o contraseña incorrectos"));
+        String ip = authentication.getDetails() instanceof WebAuthenticationDetails d ? d.getRemoteAddress() : null;
 
-        tokenStore.setToken(respuesta.token());
-        System.out.println("Token: " + tokenStore.getToken());
+        LoginResponse respuesta = backend.login(nombre, password, ip).orElseThrow(() -> {
+            log.warn("Login web rechazado: usuario={} ip={}", nombre, ip);
+            return new BadCredentialsException("Usuario o contraseña incorrectos");
+        });
 
+        log.info("Login web exitoso: usuario={} ip={}", respuesta.username(), ip);
+        var sesion = new SesionUsuario(respuesta.username(), respuesta.nombre(), respuesta.rol(), respuesta.token());
         var autoridades = List.of(new SimpleGrantedAuthority("ROLE_" + respuesta.rol()));
-        return new UsernamePasswordAuthenticationToken(respuesta.username(), password, autoridades);
+        return new UsernamePasswordAuthenticationToken(sesion, null, autoridades);
     }
 
     @Override

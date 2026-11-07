@@ -6,9 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
 @Configuration
-@EnableWebSecurity(debug = true)
+@EnableWebSecurity
 public class WebSecurityConfig {
 
     /** Paginas publicas: inicio, busqueda de eventos y login. Todo lo demas requiere autenticacion. */
@@ -37,11 +38,16 @@ public class WebSecurityConfig {
                         .permitAll())
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
+                        .deleteCookies("JSESSIONID")
                         .permitAll())
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; img-src 'self' data:; style-src 'self'; "
-                                        + "script-src 'self'; form-action 'self'; frame-ancestors 'none'")));
+                                        + "script-src 'self'; form-action 'self'; frame-ancestors 'none'; "
+                                        + "base-uri 'self'; object-src 'none'"))
+                        .referrerPolicy(r -> r.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .permissionsPolicyHeader(p -> p.policy("camera=(), microphone=(), geolocation=(), payment=()"))
+                        .httpStrictTransportSecurity(h -> h.includeSubDomains(true).maxAgeInSeconds(31536000)));
 
         return http.build();
     }

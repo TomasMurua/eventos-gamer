@@ -2,6 +2,8 @@ package com.duoc.seguridadcalidad.api.config;
 
 import com.duoc.seguridadcalidad.api.model.Usuario;
 import com.duoc.seguridadcalidad.api.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -16,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class UsuariosIniciales implements ApplicationRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(UsuariosIniciales.class);
 
     private final UsuarioRepository usuarios;
     private final PasswordEncoder passwordEncoder;
@@ -39,6 +43,9 @@ public class UsuariosIniciales implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         actualizar("ana", passwordUsuario);
         actualizar("diego", passwordUsuario);
+        if (passwordAdmin.isBlank()) {
+            log.warn("APP_PASSWORD_ADMIN no esta definida: la cuenta admin no podra iniciar sesion");
+        }
         actualizar("admin", passwordAdmin);
         if (!passwordLlam.isBlank()) {
             Usuario llam = usuarios.findByUsername("llam").orElseGet(() -> usuarios.save(

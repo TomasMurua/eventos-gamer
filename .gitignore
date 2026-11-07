@@ -1,8 +1,8 @@
-target/
 !.mvn/wrapper/maven-wrapper.jar
-.idea/
 *.iml
-.vscode/
 .DS_Store
 .env
+.idea/
+.vscode/
 eventos-gamer.env
+target/

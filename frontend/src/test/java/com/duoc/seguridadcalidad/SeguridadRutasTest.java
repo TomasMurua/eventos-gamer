@@ -5,8 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
@@ -27,9 +29,15 @@ import com.duoc.seguridadcalidad.backend.Dtos.Foto;
 import com.duoc.seguridadcalidad.backend.Dtos.LoginResponse;
 import com.duoc.seguridadcalidad.backend.Dtos.Portada;
 import com.duoc.seguridadcalidad.backend.Dtos.Usuario;
+import com.duoc.seguridadcalidad.security.SesionUsuario;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.client.HttpClientErrorException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -66,14 +74,20 @@ class SeguridadRutasTest {
         when(backend.filtros()).thenReturn(new Filtros(List.of("Varios"), List.of("Convención"), List.of("Chile"),
                 List.of("Santiago")));
         when(backend.buscar(anyMap())).thenReturn(List.of(FEST));
-        when(backend.login(anyString(), anyString())).thenReturn(Optional.empty());
-        when(backend.login(eq("ana@eventosgamer.cl"), eq("Gamer2026!")))
+        when(backend.login(anyString(), anyString(), any())).thenReturn(Optional.empty());
+        when(backend.login(eq("ana@eventosgamer.cl"), eq("Gamer2026!"), any()))
                 .thenReturn(Optional.of(new LoginResponse("jwt-ana", "Bearer", 1800, "ana", "Ana Rojas", "USER")));
-        when(backend.login(eq("admin"), eq("Admin2026!")))
+        when(backend.login(eq("admin"), eq("Admin2026!"), any()))
                 .thenReturn(Optional.of(new LoginResponse("jwt-admin", "Bearer", 1800, "admin", "Admin", "ADMIN")));
         when(backend.detalle(eq(1L), any())).thenReturn(Optional.of(DETALLE));
         when(backend.detalle(eq(999L), any())).thenReturn(Optional.empty());
         when(backend.yo(any())).thenReturn(new Usuario("ana", "ana@eventosgamer.cl", "Ana Rojas", "USER", null));
+    }
+
+    static RequestPostProcessor sesion(String usuario, String rol) {
+        var principal = new SesionUsuario(usuario, usuario, rol, "jwt-" + usuario);
+        return authentication(new UsernamePasswordAuthenticationToken(principal, null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + rol))));
     }
 
     @ParameterizedTest
@@ -123,7 +137,7 @@ class SeguridadRutasTest {
 
     @Test
     void usuarioAutenticadoVeElDetalle() throws Exception {
-        mvc.perform(get("/eventos/1").with(user("ana")))
+        mvc.perform(get("/eventos/1").with(sesion("ana", "USER")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Mayores de 12 años")))
                 .andExpect(content().string(containsString("evento-1-a.svg")));
@@ -131,7 +145,51 @@ class SeguridadRutasTest {
 
     @Test
     void eventoInexistenteDevuelve404() throws Exception {
-        mvc.perform(get("/eventos/999").with(user("ana"))).andExpect(status().isNotFound());
+        mvc.perform(get("/eventos/999").with(sesion("ana", "USER"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void cadaSesionUsaSuPropioToken() throws Exception {
+        mvc.perform(get("/eventos/1").with(sesion("ana", "USER"))).andExpect(status().isOk());
+        mvc.perform(get("/eventos/1").with(sesion("diego", "USER"))).andExpect(status().isOk());
+        verify(backend).detalle(1L, "jwt-ana");
+        verify(backend).detalle(1L, "jwt-diego");
+    }
+
+    @Test
+    void loginNoGuardaLaContrasena() throws Exception {
+        mvc.perform(formLogin("/login").user("ana@eventosgamer.cl").password("Gamer2026!"))
+                .andExpect(authenticated().withAuthentication(a -> {
+                    org.assertj.core.api.Assertions.assertThat(a.getCredentials()).isNull();
+                    org.assertj.core.api.Assertions.assertThat(((SesionUsuario) a.getPrincipal()).token()).isEqualTo("jwt-ana");
+                }));
+    }
+
+    @Test
+    void tokenExpiradoCierraLaSesion() throws Exception {
+        when(backend.yo("jwt-ana")).thenThrow(HttpClientErrorException.create(HttpStatus.UNAUTHORIZED, "401",
+                null, null, null));
+        mvc.perform(get("/perfil").with(sesion("ana", "USER")))
+                .andExpect(redirectedUrl("/login?expirada"));
+    }
+
+    @Test
+    void filtrosInvalidosRespondenBadRequestSinError500() throws Exception {
+        mvc.perform(get("/eventos/buscar").param("nombre", "A".repeat(200)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("admite hasta 80 caracteres")));
+        mvc.perform(get("/eventos/buscar").param("desde", "ZAP%n%s%n%s"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/eventos/buscar").param("modalidad", "<script>"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<script>"))));
+    }
+
+    @Test
+    void errorDelBackendNoSeConvierteEn500() throws Exception {
+        when(backend.buscar(anyMap())).thenThrow(HttpClientErrorException.create(HttpStatus.BAD_REQUEST, "400",
+                null, null, null));
+        mvc.perform(get("/eventos/buscar").param("nombre", "copa")).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -149,6 +207,10 @@ class SeguridadRutasTest {
         mvc.perform(get("/eventos"))
                 .andExpect(header().string("X-Frame-Options", "DENY"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
-                .andExpect(header().string("Content-Security-Policy", containsString("default-src 'self'")));
+                .andExpect(header().string("Content-Security-Policy", containsString("default-src 'self'")))
+                .andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .andExpect(header().string("Permissions-Policy", containsString("camera=()")));
+        mvc.perform(get("/eventos").secure(true))
+                .andExpect(header().string("Strict-Transport-Security", containsString("max-age=31536000")));
     }
 }
