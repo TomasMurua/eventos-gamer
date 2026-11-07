@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Buscar eventos')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor seccion">
+    <h1 class="titulo-pagina">Buscar eventos</h1>
+
+    <form th:action="@{/eventos/buscar}" method="get" class="filtros filtros-amplios" aria-label="Filtros de búsqueda">
+        <div class="campo campo-ancho">
+            <label for="nombre">Nombre del evento</label>
+            <input id="nombre" type="search" name="nombre" maxlength="80" th:value="${filtros.nombre}" placeholder="Ej: copa, fest, jam">
+        </div>
+        <div class="campo">
+            <label for="videojuego">Videojuego</label>
+            <select id="videojuego" name="videojuego">
+                <option value="">Todos</option>
+                <option th:each="v : ${opciones.videojuegos()}" th:value="${v}" th:text="${v}" th:selected="${v == filtros.videojuego}"></option>
+            </select>
+        </div>
+        <div class="campo">
+            <label for="categoria">Tipo o categoría</label>
+            <select id="categoria" name="categoria">
+                <option value="">Todas</option>
+                <option th:each="c : ${opciones.categorias()}" th:value="${c}" th:text="${c}" th:selected="${c == filtros.categoria}"></option>
+            </select>
+        </div>
+        <div class="campo">
+            <label for="lugar">País o ciudad</label>
+            <select id="lugar" name="lugar">
+                <option value="">Todos</option>
+                <optgroup label="Países">
+                    <option th:each="p : ${opciones.paises()}" th:value="${p}" th:text="${p}" th:selected="${p == filtros.lugar}"></option>
+                </optgroup>
+                <optgroup label="Ciudades">
+                    <option th:each="c : ${opciones.ciudades()}" th:value="${c}" th:text="${c}" th:selected="${c == filtros.lugar}"></option>
+                </optgroup>
+            </select>
+        </div>
+        <div class="campo">
+            <label for="modalidad">Modalidad</label>
+            <select id="modalidad" name="modalidad">
+                <option value="">Todas</option>
+                <option value="PRESENCIAL" th:selected="${filtros.modalidad == 'PRESENCIAL'}">Presencial</option>
+                <option value="ONLINE" th:selected="${filtros.modalidad == 'ONLINE'}">Online</option>
+            </select>
+        </div>
+        <div class="campo">
+            <label for="desde">Desde</label>
+            <input id="desde" type="date" name="desde" th:value="${filtros.desde}">
+        </div>
+        <div class="campo">
+            <label for="hasta">Hasta</label>
+            <input id="hasta" type="date" name="hasta" th:value="${filtros.hasta}">
+        </div>
+        <div class="filtros-acciones">
+            <button type="submit" class="boton">Buscar</button>
+            <a class="boton boton-linea" th:href="@{/eventos/buscar}">Limpiar filtros</a>
+        </div>
+    </form>
+
+    <p class="conteo" role="status"
+       th:text="${#lists.size(eventos) == 1} ? '1 evento' : ${#lists.size(eventos) + ' eventos'}">10 eventos</p>
+
+    <ol class="cartelera" th:unless="${#lists.isEmpty(eventos)}">
+        <th:block th:each="evento : ${eventos}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
+    </ol>
+    <div th:if="${#lists.isEmpty(eventos)}" class="vacio">
+        <p>No hay eventos con esos filtros. Prueba con otro lugar o amplía las fechas.</p>
+        <a class="boton boton-linea" th:href="@{/eventos/buscar}">Ver todos los eventos</a>
+    </div>
+    <p class="hoja-nota">Para ver el detalle completo de un evento necesitas iniciar sesión.</p>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

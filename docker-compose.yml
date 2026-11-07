@@ -1,0 +1,48 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ljcs2026
+      MYSQL_DATABASE: eventos_gamer
+    command: ["--performance-schema=OFF", "--character-set-server=utf8mb4", "--innodb-buffer-pool-size=32M", "--max-connections=40"]
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+      - datos-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pljcs2026"]
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    image: ljcs-backend:s2
+    environment:
+      DB_HOST: db
+      JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+    env_file:
+      - path: ./eventos-gamer.env
+        required: false
+    ports:
+      - "8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: ljcs-frontend:s2
+    environment:
+      BACKEND_URL: http://backend:8081
+      JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+    ports:
+      - "80:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  datos-mysql:

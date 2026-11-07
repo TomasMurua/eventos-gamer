@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments :: head('Inicio')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main>
+    <section class="portada">
+        <div class="contenedor portada-grid">
+            <div class="portada-texto">
+                <h1>La cartelera de eventos gamer</h1>
+                <p class="bajada">Torneos, LAN parties, ferias retro, lanzamientos y transmisiones online. Revisa qué viene, dónde es y cómo inscribirte.</p>
+                <div class="acciones">
+                    <a class="boton" th:href="@{/eventos/buscar}">Buscar eventos</a>
+                    <a sec:authorize="isAnonymous()" class="boton boton-linea" th:href="@{/login}">Iniciar sesión</a>
+                </div>
+                <p sec:authorize="isAuthenticated()" class="saludo">Hola, <span sec:authentication="name">usuario</span>.</p>
+            </div>
+
+            <a class="afiche" th:if="${!#lists.isEmpty(populares)}" th:with="e=${populares[0]}"
+               th:href="@{/eventos/{id}(id=${e.id()})}">
+                <span class="afiche-rotulo">El más esperado</span>
+                <span class="afiche-fecha" aria-hidden="true"
+                      th:with="texto=${#temporals.format(e.fechaHora(), 'd') + ' ' + #strings.replace(#temporals.format(e.fechaHora(), 'MMM'), '.', '')}">
+                    <span class="tinta-rosa" th:text="${texto}">12 dic</span>
+                    <span class="tinta-verde" th:text="${texto}">12 dic</span>
+                </span>
+                <span class="afiche-nombre" th:text="${e.nombre()}">Torneo</span>
+                <span class="afiche-lugar">
+                    <time th:datetime="${e.fechaHora()}" th:text="${#strings.capitalize(#temporals.format(e.fechaHora(), 'EEEE d ''de'' MMMM, HH:mm'))}">Sábado 12 de diciembre, 15:00</time>
+                    <span th:text="${'en ' + e.lugar()}">en Santiago</span>
+                </span>
+            </a>
+        </div>
+    </section>
+
+    <section class="contenedor seccion">
+        <h2>Recién publicados</h2>
+        <ol class="cartelera" th:unless="${#lists.isEmpty(recientes)}">
+            <th:block th:each="evento : ${recientes}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
+        </ol>
+        <p th:if="${#lists.isEmpty(recientes)}" class="vacio">Todavía no hay eventos publicados.</p>
+    </section>
+
+    <section class="contenedor seccion" th:unless="${#lists.isEmpty(populares)}">
+        <h2>Los más populares</h2>
+        <ul class="afiches">
+            <li th:each="evento : ${populares}" class="afiche-chico">
+                <a th:href="@{/eventos/{id}(id=${evento.id()})}">
+                    <span class="afiche-chico-categoria" th:text="${evento.categoria() + ' · ' + evento.videojuego()}">Torneo</span>
+                    <span class="afiche-chico-nombre" th:text="${evento.nombre()}">Nombre del evento</span>
+                    <span class="afiche-chico-lugar"
+                          th:text="${#temporals.format(evento.fechaHora(), 'd ''de'' MMMM') + ', ' + evento.lugar()}">14 de noviembre, Santiago</span>
+                    <span class="afiche-chico-interes" th:text="${evento.popularidad() + ' interesados'}">980 interesados</span>
+                </a>
+            </li>
+        </ul>
+    </section>
+
+    <section class="contenedor seccion" th:unless="${#lists.isEmpty(destacados)}">
+        <h2>Destacados de la temporada</h2>
+        <ol class="cartelera">
+            <th:block th:each="evento : ${destacados}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
+        </ol>
+    </section>
+
+    <section class="contenedor seccion" aria-label="Avisos comerciales">
+        <h2>Marcas que auspician</h2>
+        <ul class="avisos">
+            <li th:each="banner : ${banners}" class="aviso-marca">
+                <span class="aviso-rubro" th:text="${banner.rubro()}">Rubro</span>
+                <span class="aviso-nombre" th:text="${banner.marca()}">Marca</span>
+                <span class="aviso-eslogan" th:text="${banner.mensaje()}">Mensaje</span>
+            </li>
+        </ul>
+    </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

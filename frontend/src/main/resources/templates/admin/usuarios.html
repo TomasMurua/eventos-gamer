@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Usuarios')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor seccion">
+    <h1 class="titulo-pagina">Usuarios registrados</h1>
+    <p class="hoja-nota">Solo las cuentas con rol de administrador ven esta página.</p>
+    <div class="tabla-contenedor">
+        <table class="tabla">
+            <thead>
+            <tr><th scope="col">Usuario</th><th scope="col">Nombre</th><th scope="col">Correo</th><th scope="col">Rol</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${usuarios}">
+                <td th:text="${u.username()}">ana</td>
+                <td th:text="${u.nombre()}">Ana Rojas</td>
+                <td th:text="${u.email()}">ana@eventosgamer.cl</td>
+                <td th:text="${u.rol()}">USER</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

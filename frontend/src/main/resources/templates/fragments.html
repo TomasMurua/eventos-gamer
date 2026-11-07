@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' | Los juegos como son'">Los juegos como son</title>
+    <link rel="preload" th:href="@{/fonts/big-shoulders-display-900.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/archivo-400.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
+</head>
+<body>
+
+<header th:fragment="header" class="cabecera">
+    <div class="contenedor cabecera-inner">
+        <a class="marca-sitio" th:href="@{/eventos}">
+            <img th:src="@{/img/logo.svg}" alt="" width="36" height="36">
+            <span class="marca-sigla" aria-hidden="true">LJCS</span>
+            <span class="marca-nombre">Los juegos como son</span>
+        </a>
+        <nav class="nav" aria-label="Principal">
+            <a th:href="@{/eventos}">Inicio</a>
+            <a th:href="@{/eventos/buscar}">Buscar eventos</a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/perfil}">Mi perfil</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/usuarios}">Usuarios</a>
+            <a sec:authorize="isAnonymous()" class="boton boton-chico" th:href="@{/login}">Ingresar</a>
+            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="form-salir">
+                <span class="usuario-actual" sec:authentication="name">usuario</span>
+                <button type="submit" class="boton boton-chico boton-linea">Salir</button>
+            </form>
+        </nav>
+    </div>
+</header>
+
+<footer th:fragment="footer" class="pie">
+    <div class="contenedor">
+        <p>© 2026 Los juegos como son (LJCS)</p>
+    </div>
+</footer>
+
+<li th:fragment="fila(evento)" class="fila">
+    <time class="fila-fecha" th:datetime="${evento.fechaHora()}">
+        <span class="fila-dia" th:text="${#temporals.format(evento.fechaHora(), 'd')}">14</span>
+        <span class="fila-mes" th:text="${#strings.replace(#temporals.format(evento.fechaHora(), 'MMM'), '.', '')}">nov</span>
+    </time>
+    <div class="fila-evento">
+        <h3><a th:href="@{/eventos/{id}(id=${evento.id()})}" th:text="${evento.nombre()}">Nombre del evento</a></h3>
+        <p th:text="${evento.resumen()}">Resumen</p>
+        <p class="fila-juego" th:text="${evento.videojuego()}">Videojuego</p>
+    </div>
+    <p class="fila-categoria">
+        <span th:text="${evento.categoria()}">Categoría</span>
+        <span class="etiqueta" th:classappend="${evento.online()} ? 'etiqueta-online'"
+              th:text="${evento.online()} ? 'Online' : 'Presencial'">Presencial</span>
+    </p>
+    <p class="fila-ciudad" th:text="${evento.lugar()}">Ciudad</p>
+</li>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Mi perfil')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor hoja-contenedor">
+    <section class="hoja">
+        <h1 class="titulo-pagina">Mi perfil</h1>
+        <dl class="datos">
+            <dt>Nombre</dt>
+            <dd th:text="${usuario.nombre()}">Ana Rojas</dd>
+            <dt>Usuario</dt>
+            <dd th:text="${usuario.username()}">ana</dd>
+            <dt>Correo</dt>
+            <dd th:text="${usuario.email()}">ana@eventosgamer.cl</dd>
+            <dt>Rol</dt>
+            <dd th:text="${usuario.rol() == 'ADMIN'} ? 'Administrador' : 'Usuario'">Usuario</dd>
+            <dt>Juegos de interés</dt>
+            <dd th:text="${usuario.juegosInteres() ?: 'Sin juegos registrados'}">Street Fighter 6</dd>
+        </dl>
+        <a class="boton" th:href="@{/eventos/buscar}">Buscar eventos</a>
+    </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>
