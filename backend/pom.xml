@@ -18,6 +18,16 @@
 
     <properties>
         <java.version>17</java.version>
+        <!-- Analisis estatico con SonarQube (el token llega por la variable de entorno SONAR_TOKEN) -->
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.projectKey>ljcs-backend</sonar.projectKey>
+        <sonar.projectName>LJCS Backend (API REST)</sonar.projectName>
+        <sonar.sources>pom.xml,Dockerfile,src/main/java,src/main/resources</sonar.sources>
+        <sonar.tests>src/test/java</sonar.tests>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar-maven-plugin.version>5.9.0.7382</sonar-maven-plugin.version>
+        <jacoco.version>0.8.16</jacoco.version>
+        <dependency-check.version>13.0.0</dependency-check.version>
         <jjwt.version>0.12.6</jjwt.version>
     </properties>
 
@@ -79,10 +89,64 @@
     </dependencies>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>${sonar-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Cobertura de los tests para SonarQube (target/site/jacoco/jacoco.xml) -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>agente</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>reporte</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Analisis de composicion de software (SCA): dependencias con vulnerabilidades conocidas (CVE).
+                 Se ejecuta con "mvn verify" o "mvn dependency-check:check" y deja el reporte en target/.
+                 La compilacion falla si alguna dependencia tiene una vulnerabilidad critica (CVSS 9 o mas). -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency-check.version}</version>
+                <configuration>
+                    <nvdDatafeedUrl>https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz</nvdDatafeedUrl>
+                    <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                    <failBuildOnCVSS>9</failBuildOnCVSS>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
