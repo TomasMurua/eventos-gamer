@@ -49,6 +49,36 @@ public class LimiteFrecuencia {
         }
     }
 
+    /**
+     * Revisa el limite y reserva un cupo en un solo paso (dentro del mismo bloqueo), asi dos peticiones
+     * simultaneas no pueden pasar las dos con el ultimo cupo. Devuelve false si ya no quedan cupos.
+     */
+    public boolean intentar(String clave, int maximo, Duration ventana) {
+        Instant ahora = reloj.instant();
+        Deque<Instant> lista = marcas.computeIfAbsent(clave, k -> new ArrayDeque<>());
+        synchronized (lista) {
+            Instant desde = ahora.minus(ventana);
+            if (lista.stream().filter(t -> t.isAfter(desde)).count() >= maximo) {
+                return false;
+            }
+            lista.addLast(ahora);
+        }
+        if (marcas.size() > TAMANO_PARA_PURGAR) {
+            purgar(ahora);
+        }
+        return true;
+    }
+
+    /** Devuelve el cupo reservado con intentar() cuando la accion fallo (por ejemplo, un registro rechazado). */
+    public void liberar(String clave) {
+        Deque<Instant> lista = marcas.get(clave);
+        if (lista != null) {
+            synchronized (lista) {
+                lista.pollLast();
+            }
+        }
+    }
+
     /** Anota una accion realizada (por ejemplo, un registro que si se completo). */
     public void registrar(String clave) {
         Instant ahora = reloj.instant();

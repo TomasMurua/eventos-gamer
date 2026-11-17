@@ -74,6 +74,9 @@ public class MedioService {
         Evento evento = eventos.findById(eventoId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         Usuario usuario = usuarios.findByUsername(username).orElseThrow(() -> new AccessDeniedException("sin usuario"));
         exigirPermiso(evento, usuario, "subir medio");
+        // Bloquea la fila del usuario hasta el final de la transaccion: dos subidas simultaneas no pueden
+        // revisar la cuota o el maximo por evento al mismo tiempo y pasarse las dos
+        usuarios.bloquear(usuario.getId());
 
         if (medios.countByEventoId(eventoId) >= MAXIMO_POR_EVENTO) {
             throw new SolicitudInvalidaException("El evento ya tiene el máximo de " + MAXIMO_POR_EVENTO + " fotos y videos");

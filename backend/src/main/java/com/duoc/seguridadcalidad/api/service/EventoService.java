@@ -135,7 +135,7 @@ public class EventoService {
     public EventoResumen publicar(NuevoEventoRequest r, String username) {
         Usuario autor = usuarios.findByUsername(username).orElseThrow(() -> new AccessDeniedException("sin usuario"));
         String clave = "evento:" + username;
-        if (!limites.disponible(clave, EVENTOS_POR_DIA, Duration.ofDays(1))) {
+        if (!limites.intentar(clave, EVENTOS_POR_DIA, Duration.ofDays(1))) {
             log.warn("Limite de eventos publicados alcanzado: usuario={}", username);
             throw new DemasiadasSolicitudesException("Publicaste muchos eventos hoy. Intenta mañana.");
         }
@@ -161,7 +161,6 @@ public class EventoService {
                 r.modalidad(), Textos.limpiar(r.pais()), ciudad, r.fechaHora(), ubicacion, enlace,
                 Textos.limpiar(r.organizador()), Textos.limpiar(r.resumen()), Textos.limpiar(r.descripcion()),
                 Textos.limpiar(r.requisitos()), Textos.limpiar(r.inscripcion()), r.cupos(), autor, LocalDateTime.now()));
-        limites.registrar(clave);
         log.info("Evento publicado: id={} autor={}", evento.getId(), autor.getUsername());
         return EventoResumen.de(evento);
     }

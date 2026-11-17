@@ -21,6 +21,29 @@ class LimiteFrecuenciaTest {
         assertThat(limites.disponible("otra", 1, Duration.ofMinutes(1))).isTrue();
     }
 
+    @Test
+    void reservaYLiberaCuposEnUnSoloPaso() throws Exception {
+        LimiteFrecuencia limites = new LimiteFrecuencia();
+        // 20 hilos compiten por 5 cupos: nunca pasan mas de 5
+        var hilos = java.util.concurrent.Executors.newFixedThreadPool(8);
+        var aceptados = new java.util.concurrent.atomic.AtomicInteger();
+        var tareas = new java.util.ArrayList<java.util.concurrent.Callable<Void>>();
+        for (int i = 0; i < 20; i++) {
+            tareas.add(() -> {
+                if (limites.intentar("r", 5, Duration.ofMinutes(1))) {
+                    aceptados.incrementAndGet();
+                }
+                return null;
+            });
+        }
+        hilos.invokeAll(tareas);
+        hilos.shutdown();
+        assertThat(aceptados.get()).isEqualTo(5);
+        limites.liberar("r");
+        assertThat(limites.intentar("r", 5, Duration.ofMinutes(1))).isTrue();
+        assertThat(limites.intentar("r", 5, Duration.ofMinutes(1))).isFalse();
+    }
+
     /** Reloj que la prueba puede adelantar. */
     static class RelojMovil extends Clock {
         Instant ahora = Instant.parse("2026-11-17T10:00:00Z");

@@ -42,7 +42,7 @@ services:
     read_only: true
     # /tmp es memoria: se limita para que muchas subidas a la vez no agoten la RAM de la VM
     tmpfs: ["/tmp:size=64m"]
-    mem_limit: 448m
+    mem_limit: 512m
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
@@ -57,7 +57,7 @@ services:
     depends_on: [backend]
     read_only: true
     tmpfs: ["/tmp:size=64m"]
-    mem_limit: 448m
+    mem_limit: 512m
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped

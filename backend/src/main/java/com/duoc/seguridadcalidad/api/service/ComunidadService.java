@@ -67,12 +67,11 @@ public class ComunidadService {
             throw new SolicitudInvalidaException("El comentario no puede estar vacío");
         }
         String clave = "comentario:" + username;
-        if (!limites.disponible(clave, COMENTARIOS_POR_MINUTO, Duration.ofMinutes(1))) {
+        if (!limites.intentar(clave, COMENTARIOS_POR_MINUTO, Duration.ofMinutes(1))) {
             log.warn("Limite de comentarios alcanzado: usuario={}", username);
             throw new DemasiadasSolicitudesException("Estás comentando muy seguido. Espera un minuto.");
         }
         Comentario c = comentarios.save(new Comentario(evento(eventoId), usuario(username), limpio, LocalDateTime.now()));
-        limites.registrar(clave);
         return new ComentarioDto(c.getId(), username, c.getTexto(), c.getCreadoEn(), true);
     }
 

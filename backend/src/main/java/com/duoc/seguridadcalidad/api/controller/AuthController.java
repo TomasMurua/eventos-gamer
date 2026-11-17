@@ -108,13 +108,19 @@ public class AuthController {
     public ResponseEntity<?> registrar(@Valid @RequestBody RegistroRequest request, HttpServletRequest http) {
         String ip = http.getRemoteAddr();
         String clave = "registro:" + LimiteFrecuencia.grupoIp(ip);
-        if (!limites.disponible(clave, maxRegistrosPorIp, ventanaRegistros)) {
+        if (!limites.intentar(clave, maxRegistrosPorIp, ventanaRegistros)) {
             log.warn("Registro bloqueado por exceso de cuentas nuevas: ip={}", ip);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(new ErrorRespuesta(429, "Se crearon demasiadas cuentas desde tu red. Intenta más tarde."));
         }
-        Usuario nuevo = registro.registrar(request);
-        limites.registrar(clave);
+        Usuario nuevo;
+        try {
+            nuevo = registro.registrar(request);
+        } catch (RuntimeException e) {
+            // Un registro rechazado (clave debil, duplicado) no consume el cupo de la IP
+            limites.liberar(clave);
+            throw e;
+        }
         log.info("Cuenta registrada: cuenta={} ip={}", nuevo.getUsername(), ip);
         return ResponseEntity.status(HttpStatus.CREATED).body(new RegistroResponse(nuevo.getUsername(), nuevo.getNombre()));
     }
