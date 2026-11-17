@@ -45,6 +45,11 @@ public class ErroresApi {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorRespuesta(409, e.getMessage()));
     }
 
+    @ExceptionHandler(DemasiadasSolicitudesException.class)
+    public ResponseEntity<ErrorRespuesta> demasiadas(DemasiadasSolicitudesException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorRespuesta(429, e.getMessage()));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorRespuesta> archivoGrande(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)

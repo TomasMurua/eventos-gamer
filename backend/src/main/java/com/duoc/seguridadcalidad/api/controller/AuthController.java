@@ -9,13 +9,17 @@ import com.duoc.seguridadcalidad.api.model.Usuario;
 import com.duoc.seguridadcalidad.api.repository.UsuarioRepository;
 import com.duoc.seguridadcalidad.api.security.IntentosLogin;
 import com.duoc.seguridadcalidad.api.security.JwtService;
-import com.duoc.seguridadcalidad.api.security.LimiteRegistros;
+import com.duoc.seguridadcalidad.api.security.LimiteFrecuencia;
 import com.duoc.seguridadcalidad.api.service.RegistroService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Base64;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,19 +42,28 @@ public class AuthController {
     private final JwtService jwtService;
     private final IntentosLogin intentos;
     private final RegistroService registro;
-    private final LimiteRegistros limiteRegistros;
+    private final LimiteFrecuencia limites;
+    private final int maxRegistrosPorIp;
+    private final Duration ventanaRegistros;
     private final String hashFicticio;
 
     public AuthController(UsuarioRepository usuarios, PasswordEncoder passwordEncoder, JwtService jwtService,
-                          IntentosLogin intentos, RegistroService registro, LimiteRegistros limiteRegistros) {
+                          IntentosLogin intentos, RegistroService registro, LimiteFrecuencia limites,
+                          @Value("${app.registro.max-por-ip:5}") int maxRegistrosPorIp,
+                          @Value("${app.registro.minutos-ventana:60}") long minutosVentana) {
         this.usuarios = usuarios;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.intentos = intentos;
         this.registro = registro;
-        this.limiteRegistros = limiteRegistros;
-        // Se compara contra este hash cuando el usuario no existe, para que la respuesta tarde lo mismo
-        this.hashFicticio = passwordEncoder.encode("clave-que-no-corresponde-a-ningun-usuario");
+        this.limites = limites;
+        this.maxRegistrosPorIp = maxRegistrosPorIp;
+        this.ventanaRegistros = Duration.ofMinutes(minutosVentana);
+        // Cuando el usuario no existe se compara contra este hash, para que la respuesta tarde lo mismo.
+        // Es el hash de una clave aleatoria que se genera al arrancar: no hay ninguna clave escrita en el codigo.
+        byte[] aleatorio = new byte[32];
+        new SecureRandom().nextBytes(aleatorio);
+        this.hashFicticio = passwordEncoder.encode(Base64.getEncoder().encodeToString(aleatorio));
     }
 
     /** Publica: recibe usuario (o correo) y contrasena, y devuelve un token JWT. */
@@ -88,17 +101,20 @@ public class AuthController {
 
     /**
      * Publica: crea una cuenta con rol USER. La contrasena se guarda solo como hash BCrypt.
-     * Se limita la cantidad de registros por IP para frenar la creacion masiva de cuentas.
+     * Se limita la cantidad de cuentas creadas por IP (o por red /64 en IPv6) para frenar la creacion masiva.
+     * Solo cuentan los registros exitosos: un error de tipeo no consume el cupo.
      */
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(@Valid @RequestBody RegistroRequest request, HttpServletRequest http) {
         String ip = http.getRemoteAddr();
-        if (!limiteRegistros.permitir(ip)) {
+        String clave = "registro:" + LimiteFrecuencia.grupoIp(ip);
+        if (!limites.disponible(clave, maxRegistrosPorIp, ventanaRegistros)) {
             log.warn("Registro bloqueado por exceso de cuentas nuevas: ip={}", ip);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(new ErrorRespuesta(429, "Se crearon demasiadas cuentas desde tu red. Intenta más tarde."));
         }
         Usuario nuevo = registro.registrar(request);
+        limites.registrar(clave);
         log.info("Cuenta registrada: cuenta={} ip={}", nuevo.getUsername(), ip);
         return ResponseEntity.status(HttpStatus.CREATED).body(new RegistroResponse(nuevo.getUsername(), nuevo.getNombre()));
     }

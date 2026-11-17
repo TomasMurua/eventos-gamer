@@ -1,5 +1,6 @@
 package com.duoc.seguridadcalidad.api.service;
 
+import com.duoc.seguridadcalidad.api.error.DemasiadasSolicitudesException;
 import com.duoc.seguridadcalidad.api.error.SolicitudInvalidaException;
 import com.duoc.seguridadcalidad.api.model.Evento;
 import com.duoc.seguridadcalidad.api.model.MedioEvento;
@@ -24,6 +25,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -50,17 +53,20 @@ public class MedioService {
     private final Path directorio;
     private final long maximoFoto;
     private final long maximoVideo;
+    private final long cuotaUsuario;
 
     public MedioService(EventoRepository eventos, UsuarioRepository usuarios, MedioEventoRepository medios,
                         @Value("${app.medios.directorio}") String directorio,
                         @Value("${app.medios.max-foto-bytes:5242880}") long maximoFoto,
-                        @Value("${app.medios.max-video-bytes:20971520}") long maximoVideo) throws IOException {
+                        @Value("${app.medios.max-video-bytes:7340032}") long maximoVideo,
+                        @Value("${app.medios.cuota-usuario-bytes:104857600}") long cuotaUsuario) throws IOException {
         this.eventos = eventos;
         this.usuarios = usuarios;
         this.medios = medios;
         this.directorio = Files.createDirectories(Path.of(directorio)).toAbsolutePath().normalize();
         this.maximoFoto = maximoFoto;
         this.maximoVideo = maximoVideo;
+        this.cuotaUsuario = cuotaUsuario;
     }
 
     @Transactional
@@ -87,11 +93,19 @@ public class MedioService {
             throw new SolicitudInvalidaException("El archivo supera el máximo de " + (maximo / (1024 * 1024)) + " MB");
         }
 
+        if (medios.bytesSubidosPor(usuario.getId()) + archivo.getSize() > cuotaUsuario) {
+            log.warn("Cuota de archivos alcanzada: usuario={}", usuario.getUsername());
+            throw new DemasiadasSolicitudesException("Alcanzaste el espacio máximo de "
+                    + (cuotaUsuario / (1024 * 1024)) + " MB para fotos y videos");
+        }
+
         String nombre = UUID.randomUUID() + "." + formato.extension;
         Path destino = rutaSegura(nombre);
         try (InputStream entrada = archivo.getInputStream()) {
             Files.copy(entrada, destino);
         } catch (IOException e) {
+            // Una copia que falla a medias (disco lleno, conexion cortada) no deja archivos huerfanos
+            borrarArchivo(nombre);
             throw new UncheckedIOException("No se pudo guardar el archivo", e);
         }
         try {
@@ -126,8 +140,14 @@ public class MedioService {
         Usuario usuario = usuarios.findByUsername(username).orElseThrow(() -> new AccessDeniedException("sin usuario"));
         exigirPermiso(medio.getEvento(), usuario, "eliminar medio");
         medios.delete(medio);
-        medios.flush();
-        borrarArchivo(medio.getArchivo());
+        String archivo = medio.getArchivo();
+        // El archivo se borra solo si la transaccion se confirma; si falla, el registro y el archivo siguen juntos
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                borrarArchivo(archivo);
+            }
+        });
         log.info("Medio eliminado: evento={} medio={} usuario={}", eventoId, medioId, usuario.getUsername());
     }
 

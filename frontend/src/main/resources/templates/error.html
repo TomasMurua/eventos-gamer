@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('Error')}"></head>
+<head th:replace="~{fragments :: head('Error')}">
+    <title>Error | Los juegos como son</title>
+</head>
 <body>
 <header th:replace="~{fragments :: header}"></header>
 <main class="contenedor hoja-contenedor">
     <section class="hoja">
         <p class="error-codigo" th:text="${status}">404</p>
-        <h1 class="titulo-pagina" th:text="${status == 404} ? 'Esta página no existe' : (${status == 403} ? 'No tienes acceso a esta página' : (${status == 400} ? 'La solicitud no es válida' : 'Algo falló al cargar la página'))">Algo falló al cargar la página</h1>
-        <p th:text="${status == 404} ? 'Puede que el evento ya no esté publicado o que el enlace esté incompleto.' : 'Inténtalo de nuevo en unos minutos.'">Inténtalo de nuevo en unos minutos.</p>
+        <h1 class="titulo-pagina" th:text="${status == 404} ? 'Esta página no existe' : (${status == 403} ? 'No tienes acceso a esta página' : (${status == 400} ? 'La solicitud no es válida' : (${status == 413} ? 'El archivo es demasiado grande' : 'Algo falló al cargar la página')))">Algo falló al cargar la página</h1>
+        <p th:text="${status == 404} ? 'Puede que el evento ya no esté publicado o que el enlace esté incompleto.' : (${status == 413} ? 'Las fotos pueden pesar hasta 5 MB y los videos hasta 7 MB. Vuelve al evento y elige un archivo más liviano.' : 'Inténtalo de nuevo en unos minutos.')">Inténtalo de nuevo en unos minutos.</p>
         <a class="boton" th:href="@{/eventos}">Ir al inicio</a>
     </section>
 </main>

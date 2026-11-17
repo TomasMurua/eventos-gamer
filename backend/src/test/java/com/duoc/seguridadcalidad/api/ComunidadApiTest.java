@@ -10,13 +10,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
@@ -46,7 +46,7 @@ class ComunidadApiTest {
                         .content("{\"username\":\"" + usuario + "\",\"password\":\"" + password + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        return "Bearer " + mapper.readTree(body).get("token").asText();
+        return "Bearer " + mapper.readTree(body).get("token").asString();
     }
 
     String json(Object valor) throws Exception {
@@ -96,6 +96,24 @@ class ComunidadApiTest {
                 .andExpect(jsonPath("$.rol").value("USER"));
     }
 
+    /**
+     * La API no usa sesiones ni cookies: el token viaja en el header Authorization, que el navegador no agrega
+     * solo. Por eso la proteccion CSRF no aplica a la API (si aplica, y esta activa, en el frontend).
+     */
+    @Test
+    void apiNoCreaSesionNiCookies() throws Exception {
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .with(r -> { r.setRemoteAddr("10.3.0.1"); return r; })
+                        .content("{\"username\":\"diego\",\"password\":\"Gamer2026!\"}"))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
+                .andExpect(r -> org.assertj.core.api.Assertions.assertThat(r.getRequest().getSession(false)).isNull());
+        String token = token("diego", "Gamer2026!");
+        mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, token))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
     @Test
     void registroRechazaClaveDebilYDuplicados() throws Exception {
         mvc.perform(post("/api/auth/registro").contentType(MediaType.APPLICATION_JSON)
@@ -130,6 +148,56 @@ class ComunidadApiTest {
                         .with(r -> { r.setRemoteAddr("10.2.0.99"); return r; })
                         .content("{\"nombre\":\"Bot\",\"username\":\"bot9\",\"email\":\"bot9@correo.cl\","
                                 + "\"password\":\"Torneos2026x\"}"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void registrosFallidosNoConsumenElCupoDeLaIp() throws Exception {
+        for (int i = 0; i < 6; i++) {
+            mvc.perform(post("/api/auth/registro").contentType(MediaType.APPLICATION_JSON)
+                            .with(r -> { r.setRemoteAddr("10.2.0.77"); return r; })
+                            .content("{\"nombre\":\"Rocio\",\"username\":\"rocio\",\"email\":\"rocio@correo.cl\","
+                                    + "\"password\":\"debil\"}"))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(post("/api/auth/registro").contentType(MediaType.APPLICATION_JSON)
+                        .with(r -> { r.setRemoteAddr("10.2.0.77"); return r; })
+                        .content("{\"nombre\":\"Rocio\",\"username\":\"rocio\",\"email\":\"rocio@correo.cl\","
+                                + "\"password\":\"Torneos2026x\"}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void limitaEventosPublicadosPorDia() throws Exception {
+        mvc.perform(post("/api/auth/registro").contentType(MediaType.APPLICATION_JSON)
+                        .with(r -> { r.setRemoteAddr("10.2.0.56"); return r; })
+                        .content("{\"nombre\":\"Org\",\"username\":\"organizador\",\"email\":\"org@correo.cl\","
+                                + "\"password\":\"Torneos2026x\"}"))
+                .andExpect(status().isCreated());
+        String token = token("organizador", "Torneos2026x");
+        for (int i = 0; i < 10; i++) {
+            publicar(token, "Evento " + i);
+        }
+        mvc.perform(post("/api/eventos").header(HttpHeaders.AUTHORIZATION, token)
+                        .contentType(MediaType.APPLICATION_JSON).content(json(eventoPresencial("Uno de mas"))))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void limitaComentariosPorMinuto() throws Exception {
+        mvc.perform(post("/api/auth/registro").contentType(MediaType.APPLICATION_JSON)
+                        .with(r -> { r.setRemoteAddr("10.2.0.55"); return r; })
+                        .content("{\"nombre\":\"Spam\",\"username\":\"spammer\",\"email\":\"spam@correo.cl\","
+                                + "\"password\":\"Torneos2026x\"}"))
+                .andExpect(status().isCreated());
+        String token = token("spammer", "Torneos2026x");
+        for (int i = 0; i < 5; i++) {
+            mvc.perform(post("/api/eventos/4/comentarios").header(HttpHeaders.AUTHORIZATION, token)
+                            .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("texto", "Mensaje " + i))))
+                    .andExpect(status().isCreated());
+        }
+        mvc.perform(post("/api/eventos/4/comentarios").header(HttpHeaders.AUTHORIZATION, token)
+                        .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("texto", "Uno mas"))))
                 .andExpect(status().isTooManyRequests());
     }
 
@@ -238,6 +306,10 @@ class ComunidadApiTest {
         mvc.perform(get("/api/portada"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.compartidos[0].mensaje").value("¡Vamos a la LAN!"));
+        // Un mismo usuario no puede llenar el muro compartiendo el mismo evento muchas veces
+        mvc.perform(post("/api/eventos/3/compartidos").header(HttpHeaders.AUTHORIZATION, ana)
+                        .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("mensaje", "Otra vez"))))
+                .andExpect(status().isConflict());
 
         mvc.perform(delete("/api/eventos/3/comentarios/{c}", comentarioId).header(HttpHeaders.AUTHORIZATION, diego))
                 .andExpect(status().isNoContent());

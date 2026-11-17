@@ -121,6 +121,7 @@ CREATE TABLE evento_compartidos (
     mensaje    VARCHAR(280) NULL,
     creado_en  DATETIME     NOT NULL,
     PRIMARY KEY (id),
+    CONSTRAINT uk_compartidos_evento_usuario UNIQUE (evento_id, usuario_id),
     CONSTRAINT fk_compartidos_evento FOREIGN KEY (evento_id) REFERENCES eventos (id) ON DELETE CASCADE,
     CONSTRAINT fk_compartidos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
 );

@@ -28,7 +28,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -140,6 +140,21 @@ class ComunidadWebTest {
                         .with(csrf()).with(SeguridadRutasTest.sesion("ana", "USER")))
                 .andExpect(redirectedUrl("/eventos/2#medios"));
         verify(backend).subirMedio(eq(2L), any(), eq("Afiche"), eq("jwt-ana"));
+    }
+
+    @Test
+    void archivoDemasiadoGrandeResponde413EnVezDe403() throws Exception {
+        // El token CSRF no se alcanza a leer de un multipart que supera el limite
+        mvc.perform(post("/eventos/2/medios").with(SeguridadRutasTest.sesion("ana", "USER"))
+                        .contentType("multipart/form-data; boundary=limite")
+                        .content(new byte[9 * 1024 * 1024]))
+                .andExpect(status().isPayloadTooLarge());
+        // Un formulario normal sin token sigue siendo 403
+        mvc.perform(post("/eventos/2/medios").with(SeguridadRutasTest.sesion("ana", "USER"))
+                        .contentType("multipart/form-data; boundary=limite")
+                        .content(new byte[100]))
+                .andExpect(status().isForbidden());
+        verify(backend, never()).subirMedio(any(), any(), anyString(), anyString());
     }
 
     @Test

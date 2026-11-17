@@ -19,10 +19,10 @@ import com.duoc.seguridadcalidad.api.service.MedioService.ArchivoMedio;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import java.security.Principal;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.core.io.Resource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
@@ -121,7 +121,8 @@ public class EventoController {
                 .contentType(MediaType.parseMediaType(archivo.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.inline().filename(archivo.nombreDescarga()).build().toString())
-                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePrivate())
+                // Sin cache: tras cerrar sesion o borrar el archivo no queda una copia en el navegador
+                .cacheControl(CacheControl.noStore())
                 .body(archivo.recurso());
     }
 
@@ -151,7 +152,12 @@ public class EventoController {
     @PutMapping("/eventos/{id}/valoracion")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void valorar(@PathVariable Long id, @Valid @RequestBody ValoracionRequest request, Principal principal) {
-        comunidad.valorar(id, principal.getName(), request.puntaje());
+        try {
+            comunidad.valorar(id, principal.getName(), request.puntaje());
+        } catch (DataIntegrityViolationException e) {
+            // Dos valoraciones simultaneas del mismo usuario: la segunda encuentra la primera y la actualiza
+            comunidad.valorar(id, principal.getName(), request.puntaje());
+        }
     }
 
     /** Privada: compartir el evento en el muro de la comunidad. */

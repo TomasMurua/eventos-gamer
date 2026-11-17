@@ -3,6 +3,8 @@ package com.duoc.seguridadcalidad.api.service;
 import com.duoc.seguridadcalidad.api.dto.CompartidoDto;
 import com.duoc.seguridadcalidad.api.dto.EventoDetalle.ComentarioDto;
 import com.duoc.seguridadcalidad.api.dto.EventoDetalle.Comunidad;
+import com.duoc.seguridadcalidad.api.error.ConflictoException;
+import com.duoc.seguridadcalidad.api.error.DemasiadasSolicitudesException;
 import com.duoc.seguridadcalidad.api.error.SolicitudInvalidaException;
 import com.duoc.seguridadcalidad.api.model.Comentario;
 import com.duoc.seguridadcalidad.api.model.Compartido;
@@ -14,7 +16,11 @@ import com.duoc.seguridadcalidad.api.repository.CompartidoRepository;
 import com.duoc.seguridadcalidad.api.repository.EventoRepository;
 import com.duoc.seguridadcalidad.api.repository.UsuarioRepository;
 import com.duoc.seguridadcalidad.api.repository.ValoracionRepository;
+import com.duoc.seguridadcalidad.api.security.LimiteFrecuencia;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,19 +37,27 @@ public class ComunidadService {
 
     private static final Logger log = LoggerFactory.getLogger("seguridad");
 
+    /** Maximo de comentarios por usuario por minuto, para frenar el spam. */
+    static final int COMENTARIOS_POR_MINUTO = 5;
+    /** El detalle muestra los comentarios mas recientes hasta este numero. */
+    static final int COMENTARIOS_VISIBLES = 100;
+
     private final EventoRepository eventos;
     private final UsuarioRepository usuarios;
     private final ComentarioRepository comentarios;
     private final ValoracionRepository valoraciones;
     private final CompartidoRepository compartidos;
+    private final LimiteFrecuencia limites;
 
     public ComunidadService(EventoRepository eventos, UsuarioRepository usuarios, ComentarioRepository comentarios,
-                            ValoracionRepository valoraciones, CompartidoRepository compartidos) {
+                            ValoracionRepository valoraciones, CompartidoRepository compartidos,
+                            LimiteFrecuencia limites) {
         this.eventos = eventos;
         this.usuarios = usuarios;
         this.comentarios = comentarios;
         this.valoraciones = valoraciones;
         this.compartidos = compartidos;
+        this.limites = limites;
     }
 
     @Transactional
@@ -52,7 +66,13 @@ public class ComunidadService {
         if (limpio == null) {
             throw new SolicitudInvalidaException("El comentario no puede estar vacío");
         }
+        String clave = "comentario:" + username;
+        if (!limites.disponible(clave, COMENTARIOS_POR_MINUTO, Duration.ofMinutes(1))) {
+            log.warn("Limite de comentarios alcanzado: usuario={}", username);
+            throw new DemasiadasSolicitudesException("Estás comentando muy seguido. Espera un minuto.");
+        }
         Comentario c = comentarios.save(new Comentario(evento(eventoId), usuario(username), limpio, LocalDateTime.now()));
+        limites.registrar(clave);
         return new ComentarioDto(c.getId(), username, c.getTexto(), c.getCreadoEn(), true);
     }
 
@@ -79,16 +99,21 @@ public class ComunidadService {
                 () -> valoraciones.save(new Valoracion(evento, usuario, puntaje, LocalDateTime.now())));
     }
 
+    /** Cada usuario puede compartir un mismo evento una sola vez en el muro (evita llenar la portada). */
     @Transactional
     public CompartidoDto compartir(Long eventoId, String username, String mensaje) {
-        Compartido c = compartidos.save(
-                new Compartido(evento(eventoId), usuario(username), Textos.limpiar(mensaje), LocalDateTime.now()));
+        Evento evento = evento(eventoId);
+        Usuario usuario = usuario(username);
+        if (compartidos.existsByEventoIdAndUsuarioId(eventoId, usuario.getId())) {
+            throw new ConflictoException("Ya compartiste este evento en el muro");
+        }
+        Compartido c = compartidos.save(new Compartido(evento, usuario, Textos.limpiar(mensaje), LocalDateTime.now()));
         return CompartidoDto.de(c);
     }
 
     @Transactional(readOnly = true)
     public List<CompartidoDto> muro() {
-        return compartidos.findAllByOrderByCreadoEnDesc(PageRequest.of(0, 6)).stream().map(CompartidoDto::de).toList();
+        return compartidos.recientes(PageRequest.of(0, 6)).stream().map(CompartidoDto::de).toList();
     }
 
     /** Resumen para el detalle del evento, visto por el usuario indicado. */
@@ -100,11 +125,14 @@ public class ComunidadService {
         Integer mia = lista.stream()
                 .filter(v -> quienConsulta != null && v.getUsuario().getId().equals(quienConsulta.getId()))
                 .map(Valoracion::getPuntaje).findFirst().orElse(null);
-        List<ComentarioDto> textos = comentarios.findByEventoIdOrderByCreadoEnAsc(eventoId).stream()
+        List<ComentarioDto> textos = new ArrayList<>(comentarios.recientes(eventoId,
+                        PageRequest.of(0, COMENTARIOS_VISIBLES)).stream()
                 .map(c -> new ComentarioDto(c.getId(), c.getUsuario().getUsername(), c.getTexto(), c.getCreadoEn(),
                         quienConsulta != null && (quienConsulta.esAdmin()
                                 || c.getUsuario().getId().equals(quienConsulta.getId()))))
-                .toList();
+                .toList());
+        // Se piden los mas recientes y se muestran en orden cronologico
+        Collections.reverse(textos);
         return new Comunidad(promedio, lista.size(), mia, textos, compartidos.countByEventoId(eventoId));
     }
 

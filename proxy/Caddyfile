@@ -17,19 +17,23 @@
 		-X-Powered-By
 	}
 
+	# Tamano maximo del cuerpo: 9 MB solo para subir fotos y videos (hasta 7 MB), 1 MB para todo lo demas
+	@subida path_regexp ^(/api)?/eventos/[0-9]+/medios$
+	@resto not path_regexp ^(/api)?/eventos/[0-9]+/medios$
+	request_body @subida {
+		max_size 9MB
+	}
+	request_body @resto {
+		max_size 1MB
+	}
+
 	# API REST del backend
 	handle /api/* {
-		request_body {
-			max_size 22MB
-		}
 		reverse_proxy backend:8081
 	}
 
-	# Paginas del frontend. El cuerpo de las peticiones se limita a 22 MB (videos de hasta 20 MB)
+	# Paginas del frontend
 	handle {
-		request_body {
-			max_size 22MB
-		}
 		reverse_proxy frontend:8080
 	}
 

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head(${evento.nombre()})}"></head>
+<head th:replace="~{fragments :: head(${evento.nombre()})}">
+    <title>Detalle del evento | Los juegos como son</title>
+</head>
 <body>
 <header th:replace="~{fragments :: header}"></header>
 
@@ -58,7 +60,8 @@
                     <label for="archivo">Foto o video</label>
                     <input id="archivo" type="file" name="archivo" required
                            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
-                    <p class="ayuda">Fotos JPG, PNG o WebP de hasta 5 MB. Videos MP4 o WebM de hasta 20 MB. Máximo 12 por evento.</p>
+                    <p class="ayuda">Fotos JPG, PNG o WebP de hasta 5 MB. Videos MP4 o WebM de hasta 7 MB. Máximo 12 por evento.
+                        Las fotos se publican tal como las subes, con sus metadatos (por ejemplo, la ubicación donde se tomaron).</p>
                 </div>
                 <div class="campo">
                     <label for="descripcion-medio">Descripción</label>

@@ -6,6 +6,7 @@ import com.duoc.seguridadcalidad.api.dto.EventoResumen;
 import com.duoc.seguridadcalidad.api.dto.Filtros;
 import com.duoc.seguridadcalidad.api.dto.NuevoEventoRequest;
 import com.duoc.seguridadcalidad.api.dto.Portada;
+import com.duoc.seguridadcalidad.api.error.DemasiadasSolicitudesException;
 import com.duoc.seguridadcalidad.api.error.SolicitudInvalidaException;
 import com.duoc.seguridadcalidad.api.model.Evento;
 import com.duoc.seguridadcalidad.api.model.Modalidad;
@@ -14,8 +15,10 @@ import com.duoc.seguridadcalidad.api.repository.BannerRepository;
 import com.duoc.seguridadcalidad.api.repository.EventoRepository;
 import com.duoc.seguridadcalidad.api.repository.MedioEventoRepository;
 import com.duoc.seguridadcalidad.api.repository.UsuarioRepository;
+import com.duoc.seguridadcalidad.api.security.LimiteFrecuencia;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,19 +44,24 @@ public class EventoService {
 
     private static final Logger log = LoggerFactory.getLogger("seguridad");
 
+    /** Maximo de eventos que un usuario puede publicar en 24 horas. */
+    static final int EVENTOS_POR_DIA = 10;
+
     private final EventoRepository eventos;
     private final BannerRepository banners;
     private final UsuarioRepository usuarios;
     private final MedioEventoRepository medios;
     private final ComunidadService comunidad;
+    private final LimiteFrecuencia limites;
 
     public EventoService(EventoRepository eventos, BannerRepository banners, UsuarioRepository usuarios,
-                         MedioEventoRepository medios, ComunidadService comunidad) {
+                         MedioEventoRepository medios, ComunidadService comunidad, LimiteFrecuencia limites) {
         this.eventos = eventos;
         this.banners = banners;
         this.usuarios = usuarios;
         this.medios = medios;
         this.comunidad = comunidad;
+        this.limites = limites;
     }
 
     public Portada portada() {
@@ -126,6 +134,11 @@ public class EventoService {
     @Transactional
     public EventoResumen publicar(NuevoEventoRequest r, String username) {
         Usuario autor = usuarios.findByUsername(username).orElseThrow(() -> new AccessDeniedException("sin usuario"));
+        String clave = "evento:" + username;
+        if (!limites.disponible(clave, EVENTOS_POR_DIA, Duration.ofDays(1))) {
+            log.warn("Limite de eventos publicados alcanzado: usuario={}", username);
+            throw new DemasiadasSolicitudesException("Publicaste muchos eventos hoy. Intenta mañana.");
+        }
         String categoria = CATEGORIAS.stream().filter(c -> c.equalsIgnoreCase(r.categoria().trim())).findFirst()
                 .orElseThrow(() -> new SolicitudInvalidaException("La categoría no es válida"));
 
@@ -148,6 +161,7 @@ public class EventoService {
                 r.modalidad(), Textos.limpiar(r.pais()), ciudad, r.fechaHora(), ubicacion, enlace,
                 Textos.limpiar(r.organizador()), Textos.limpiar(r.resumen()), Textos.limpiar(r.descripcion()),
                 Textos.limpiar(r.requisitos()), Textos.limpiar(r.inscripcion()), r.cupos(), autor, LocalDateTime.now()));
+        limites.registrar(clave);
         log.info("Evento publicado: id={} autor={}", evento.getId(), autor.getUsername());
         return EventoResumen.de(evento);
     }

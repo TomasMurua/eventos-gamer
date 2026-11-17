@@ -210,7 +210,8 @@ public class BackendClient {
                     copiarHeader(respuesta.getHeaders(), destino, HttpHeaders.CONTENT_RANGE);
                     copiarHeader(respuesta.getHeaders(), destino, HttpHeaders.ACCEPT_RANGES);
                     destino.setHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-                    destino.setHeader(HttpHeaders.CACHE_CONTROL, "private, max-age=3600");
+                    // Sin cache: tras cerrar sesion o borrar el archivo no queda una copia en el navegador
+                    destino.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
                     StreamUtils.copy(respuesta.getBody(), destino.getOutputStream());
                     return null;
                 });

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('Ingresar')}"></head>
+<head th:replace="~{fragments :: head('Ingresar')}">
+    <title>Ingresar | Los juegos como son</title>
+</head>
 <body>
 <header th:replace="~{fragments :: header}"></header>
 
@@ -18,7 +20,7 @@
             <div class="campo">
                 <label for="username">Correo o usuario</label>
                 <input id="username" type="text" name="username" autocomplete="username" autocapitalize="none"
-                       spellcheck="false" required autofocus>
+                       spellcheck="false" required>
             </div>
             <div class="campo">
                 <label for="password">Contraseña</label>
