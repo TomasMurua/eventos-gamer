@@ -6,6 +6,7 @@
 
 <main class="contenedor seccion">
     <a class="volver" th:href="@{/eventos/buscar}">Volver a la búsqueda</a>
+    <div th:replace="~{fragments :: mensajes}"></div>
 
     <article class="detalle">
         <header class="detalle-cabecera">
@@ -19,6 +20,7 @@
                 <time th:datetime="${evento.fechaHora()}"
                       th:text="${#strings.capitalize(#temporals.format(evento.fechaHora(), 'EEEE d ''de'' MMMM ''de'' yyyy, HH:mm'))}">Sábado 14 de noviembre de 2026, 10:00</time>
             </p>
+            <p class="detalle-autor" th:if="${evento.autor() != null}">Publicado por <strong th:text="${'@' + evento.autor()}">@ana</strong></p>
         </header>
 
         <ul class="galeria" th:unless="${#lists.isEmpty(evento.fotos())}">
@@ -30,15 +32,51 @@
             </li>
         </ul>
 
+        <section id="medios" class="bloque" th:if="${evento.editable() or !#lists.isEmpty(evento.medios())}"
+                 aria-labelledby="titulo-medios">
+            <h2 id="titulo-medios">Fotos y videos del organizador</h2>
+            <ul class="galeria" th:unless="${#lists.isEmpty(evento.medios())}">
+                <li th:each="m : ${evento.medios()}">
+                    <figure>
+                        <video th:if="${m.video()}" th:src="@{/eventos/{id}/medios/{m}(id=${evento.id()},m=${m.id()})}"
+                               controls preload="metadata" width="640" height="400"></video>
+                        <img th:unless="${m.video()}" th:src="@{/eventos/{id}/medios/{m}(id=${evento.id()},m=${m.id()})}"
+                             th:alt="${m.descripcion()}" width="640" height="400" loading="lazy">
+                        <figcaption>
+                            <span th:text="${m.descripcion()}">Descripción</span>
+                            <form th:if="${evento.editable()}" method="post" class="form-en-linea"
+                                  th:action="@{/eventos/{id}/medios/{m}/eliminar(id=${evento.id()},m=${m.id()})}">
+                                <button type="submit" class="boton-texto">Eliminar</button>
+                            </form>
+                        </figcaption>
+                    </figure>
+                </li>
+            </ul>
+            <form th:if="${evento.editable()}" th:action="@{/eventos/{id}/medios(id=${evento.id()})}" method="post"
+                  enctype="multipart/form-data" class="formulario panel">
+                <div class="campo">
+                    <label for="archivo">Foto o video</label>
+                    <input id="archivo" type="file" name="archivo" required
+                           accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+                    <p class="ayuda">Fotos JPG, PNG o WebP de hasta 5 MB. Videos MP4 o WebM de hasta 20 MB. Máximo 12 por evento.</p>
+                </div>
+                <div class="campo">
+                    <label for="descripcion-medio">Descripción</label>
+                    <input id="descripcion-medio" type="text" name="descripcion" maxlength="160" required>
+                </div>
+                <button type="submit" class="boton">Agregar al evento</button>
+            </form>
+        </section>
+
         <div class="detalle-grid">
             <div class="detalle-texto">
-                <p class="detalle-bajada" th:text="${evento.descripcion()}">Descripción</p>
+                <p class="detalle-bajada texto-largo" th:text="${evento.descripcion()}">Descripción</p>
 
                 <h2>Requisitos para participar</h2>
-                <p th:text="${evento.requisitos()}">Requisitos</p>
+                <p class="texto-largo" th:text="${evento.requisitos()}">Requisitos</p>
 
                 <h2>Inscripción</h2>
-                <p th:text="${evento.inscripcion()}">Inscripción</p>
+                <p class="texto-largo" th:text="${evento.inscripcion()}">Inscripción</p>
                 <p th:if="${evento.cupos() != null}" th:text="${'Cupos: ' + evento.cupos()}">Cupos: 120</p>
 
                 <h2>Organiza</h2>
@@ -55,8 +93,79 @@
 
                 <h3>Interés</h3>
                 <p th:text="${evento.popularidad() + ' personas interesadas'}">980 personas interesadas</p>
+
+                <h3>Valoración</h3>
+                <p th:if="${evento.comunidad().promedio() != null}"
+                   th:text="${evento.comunidad().promedio() + ' de 5 · ' + evento.comunidad().totalValoraciones() + (evento.comunidad().totalValoraciones() == 1 ? ' valoración' : ' valoraciones')}">4.5 de 5 · 2 valoraciones</p>
+                <p th:if="${evento.comunidad().promedio() == null}">Todavía sin valoraciones</p>
             </aside>
         </div>
+
+        <div class="comunidad-grid">
+            <section id="valoracion" class="bloque panel" aria-labelledby="titulo-valorar">
+                <h2 id="titulo-valorar">Valora el evento</h2>
+                <form th:action="@{/eventos/{id}/valoracion(id=${evento.id()})}" method="post" class="formulario">
+                    <fieldset class="estrellas">
+                        <legend class="solo-lector">Puntaje de 1 a 5</legend>
+                        <label th:each="n : ${#numbers.sequence(1, 5)}" class="estrella">
+                            <input type="radio" name="puntaje" th:value="${n}" required
+                                   th:checked="${evento.comunidad().miValoracion() == n}">
+                            <span th:text="${n}">1</span>
+                        </label>
+                    </fieldset>
+                    <p class="ayuda" th:if="${evento.comunidad().miValoracion() != null}"
+                       th:text="${'Tu valoración actual: ' + evento.comunidad().miValoracion() + ' de 5'}">Tu valoración actual: 4 de 5</p>
+                    <button type="submit" class="boton boton-chico">Guardar valoración</button>
+                </form>
+            </section>
+
+            <section id="compartir" class="bloque panel" aria-labelledby="titulo-compartir">
+                <h2 id="titulo-compartir">Compartir</h2>
+                <p class="ayuda" th:text="${evento.comunidad().compartidos() == 1} ? 'Compartido 1 vez en LJCS' : ${'Compartido ' + evento.comunidad().compartidos() + ' veces en LJCS'}">Compartido 2 veces</p>
+                <form th:action="@{/eventos/{id}/compartir(id=${evento.id()})}" method="post" class="formulario">
+                    <div class="campo">
+                        <label for="mensaje">Mensaje para el muro de la comunidad <span class="ayuda">(opcional)</span></label>
+                        <textarea id="mensaje" name="mensaje" rows="2" maxlength="280"></textarea>
+                    </div>
+                    <button type="submit" class="boton boton-chico">Compartir en LJCS</button>
+                </form>
+                <h3>En redes sociales</h3>
+                <ul class="redes">
+                    <li th:each="r : ${redes}">
+                        <a th:href="${r.url()}" th:text="${r.red()}" target="_blank" rel="noopener noreferrer">Red</a>
+                    </li>
+                </ul>
+                <div class="campo">
+                    <label for="enlace-evento">Enlace del evento</label>
+                    <input id="enlace-evento" type="text" th:value="${enlaceEvento}" readonly>
+                </div>
+            </section>
+        </div>
+
+        <section id="comentarios" class="bloque" aria-labelledby="titulo-comentarios">
+            <h2 id="titulo-comentarios" th:text="${'Comentarios (' + #lists.size(evento.comunidad().comentarios()) + ')'}">Comentarios (2)</h2>
+            <ol class="comentarios" th:unless="${#lists.isEmpty(evento.comunidad().comentarios())}">
+                <li th:each="c : ${evento.comunidad().comentarios()}" class="comentario">
+                    <p class="comentario-cabecera">
+                        <span class="muro-usuario" th:text="${'@' + c.usuario()}">@diego</span>
+                        <time th:datetime="${c.fecha()}" th:text="${#temporals.format(c.fecha(), 'd ''de'' MMMM, HH:mm')}">3 de noviembre, 21:14</time>
+                    </p>
+                    <p class="texto-largo" th:text="${c.texto()}">Comentario</p>
+                    <form th:if="${c.eliminable()}" method="post" class="form-en-linea"
+                          th:action="@{/eventos/{id}/comentarios/{c}/eliminar(id=${evento.id()},c=${c.id()})}">
+                        <button type="submit" class="boton-texto">Eliminar</button>
+                    </form>
+                </li>
+            </ol>
+            <p th:if="${#lists.isEmpty(evento.comunidad().comentarios())}" class="vacio">Sé el primero en comentar.</p>
+            <form th:action="@{/eventos/{id}/comentarios(id=${evento.id()})}" method="post" class="formulario panel">
+                <div class="campo">
+                    <label for="texto">Tu comentario</label>
+                    <textarea id="texto" name="texto" rows="3" maxlength="1000" required></textarea>
+                </div>
+                <button type="submit" class="boton boton-chico">Comentar</button>
+            </form>
+        </section>
     </article>
 </main>
 

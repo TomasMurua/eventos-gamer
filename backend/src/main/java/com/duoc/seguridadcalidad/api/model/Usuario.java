@@ -75,6 +75,10 @@ public class Usuario {
         return rol;
     }
 
+    public boolean esAdmin() {
+        return "ADMIN".equals(rol);
+    }
+
     public String getJuegosInteres() {
         return juegosInteres;
     }

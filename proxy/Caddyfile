@@ -19,11 +19,17 @@
 
 	# API REST del backend
 	handle /api/* {
+		request_body {
+			max_size 22MB
+		}
 		reverse_proxy backend:8081
 	}
 
-	# Paginas del frontend
+	# Paginas del frontend. El cuerpo de las peticiones se limita a 22 MB (videos de hasta 20 MB)
 	handle {
+		request_body {
+			max_size 22MB
+		}
 		reverse_proxy frontend:8080
 	}
 

@@ -23,6 +23,7 @@ public class HomeController {
         model.addAttribute("populares", portada.populares());
         model.addAttribute("destacados", portada.destacados());
         model.addAttribute("banners", portada.banners());
+        model.addAttribute("compartidos", portada.compartidos() == null ? java.util.List.of() : portada.compartidos());
         return "home";
     }
 

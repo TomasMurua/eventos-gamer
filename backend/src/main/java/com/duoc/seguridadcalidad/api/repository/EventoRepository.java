@@ -15,6 +15,8 @@ public interface EventoRepository extends JpaRepository<Evento, Long>, JpaSpecif
 
     List<Evento> findByDestacadoTrueOrderByFechaHoraAsc();
 
+    List<Evento> findByAutorIdOrderByFechaHoraAsc(Long autorId);
+
     @Query("select distinct e.videojuego from Evento e order by e.videojuego")
     List<String> videojuegos();
 

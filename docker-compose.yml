@@ -21,7 +21,7 @@ services:
 
   backend:
     build: ./backend
-    image: ljcs-backend:s3
+    image: ljcs-backend:s5
     environment:
       DB_HOST: db
       DB_USER: ljcs_app
@@ -30,7 +30,11 @@ services:
       APP_PASSWORD_USUARIO: ${APP_PASSWORD_USUARIO:-}
       APP_PASSWORD_ADMIN: ${APP_PASSWORD_ADMIN:?Falta APP_PASSWORD_ADMIN en .env}
       APP_PASSWORD_LLAM: ${APP_PASSWORD_LLAM:-}
-      JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+      MEDIOS_DIR: /data/medios
+      JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Duser.timezone=America/Santiago"
+    # Fotos y videos subidos por los usuarios: unico directorio con escritura del contenedor
+    volumes:
+      - medios:/data/medios
     networks: [datos, app]
     depends_on:
       db:
@@ -43,10 +47,10 @@ services:
 
   frontend:
     build: ./frontend
-    image: ljcs-frontend:s3
+    image: ljcs-frontend:s5
     environment:
       BACKEND_URL: http://backend:8081
-      JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+      JAVA_TOOL_OPTIONS: "-Xmx160m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Duser.timezone=America/Santiago"
     networks: [app]
     depends_on: [backend]
     read_only: true
@@ -79,5 +83,6 @@ networks:
 
 volumes:
   datos-mysql:
+  medios:
   caddy-datos:
   caddy-config:

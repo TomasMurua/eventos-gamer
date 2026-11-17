@@ -4,19 +4,30 @@ import com.duoc.seguridadcalidad.api.dto.BannerDto;
 import com.duoc.seguridadcalidad.api.dto.EventoDetalle;
 import com.duoc.seguridadcalidad.api.dto.EventoResumen;
 import com.duoc.seguridadcalidad.api.dto.Filtros;
+import com.duoc.seguridadcalidad.api.dto.NuevoEventoRequest;
 import com.duoc.seguridadcalidad.api.dto.Portada;
+import com.duoc.seguridadcalidad.api.error.SolicitudInvalidaException;
 import com.duoc.seguridadcalidad.api.model.Evento;
 import com.duoc.seguridadcalidad.api.model.Modalidad;
+import com.duoc.seguridadcalidad.api.model.Usuario;
 import com.duoc.seguridadcalidad.api.repository.BannerRepository;
 import com.duoc.seguridadcalidad.api.repository.EventoRepository;
+import com.duoc.seguridadcalidad.api.repository.MedioEventoRepository;
+import com.duoc.seguridadcalidad.api.repository.UsuarioRepository;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,12 +35,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class EventoService {
 
+    /** Categorias que se pueden elegir al publicar un evento. */
+    public static final List<String> CATEGORIAS = List.of("Benéfico", "Convención", "Desarrollo", "Encuentro",
+            "LAN Party", "Lanzamiento", "Retro", "Torneo");
+
+    private static final Logger log = LoggerFactory.getLogger("seguridad");
+
     private final EventoRepository eventos;
     private final BannerRepository banners;
+    private final UsuarioRepository usuarios;
+    private final MedioEventoRepository medios;
+    private final ComunidadService comunidad;
 
-    public EventoService(EventoRepository eventos, BannerRepository banners) {
+    public EventoService(EventoRepository eventos, BannerRepository banners, UsuarioRepository usuarios,
+                         MedioEventoRepository medios, ComunidadService comunidad) {
         this.eventos = eventos;
         this.banners = banners;
+        this.usuarios = usuarios;
+        this.medios = medios;
+        this.comunidad = comunidad;
     }
 
     public Portada portada() {
@@ -37,11 +61,12 @@ public class EventoService {
                 eventos.findAllByOrderByPublicadoEnDesc(PageRequest.of(0, 4)).stream().map(EventoResumen::de).toList(),
                 eventos.findAllByOrderByPopularidadDesc(PageRequest.of(0, 4)).stream().map(EventoResumen::de).toList(),
                 eventos.findByDestacadoTrueOrderByFechaHoraAsc().stream().map(EventoResumen::de).toList(),
-                banners.findByActivoTrue().stream().map(BannerDto::de).toList());
+                banners.findByActivoTrue().stream().map(BannerDto::de).toList(),
+                comunidad.muro());
     }
 
     public Filtros filtros() {
-        return new Filtros(eventos.videojuegos(), eventos.categorias(), eventos.paises(), eventos.ciudades());
+        return new Filtros(eventos.videojuegos(), eventos.categorias(), eventos.paises(), eventos.ciudades(), CATEGORIAS);
     }
 
     /**
@@ -80,8 +105,61 @@ public class EventoService {
                 .stream().map(EventoResumen::de).toList();
     }
 
-    public Optional<EventoDetalle> detalle(Long id) {
-        return eventos.findById(id).map(EventoDetalle::de);
+    /** Detalle completo, con lo que puede hacer el usuario que consulta (editar si es el autor o ADMIN). */
+    public Optional<EventoDetalle> detalle(Long id, String username) {
+        Usuario quien = usuarios.findByUsername(username).orElse(null);
+        return eventos.findById(id).map(e -> {
+            boolean editable = quien != null && (e.esAutor(quien) || quien.esAdmin());
+            List<EventoDetalle.Medio> lista = medios.findByEventoIdOrderBySubidoEnAsc(id).stream()
+                    .map(m -> new EventoDetalle.Medio(m.getId(), m.getTipo().name(), m.getDescripcion()))
+                    .toList();
+            return EventoDetalle.de(e, editable, lista, comunidad.resumen(id, quien));
+        });
+    }
+
+    public List<EventoResumen> publicadosPor(String username) {
+        Usuario usuario = usuarios.findByUsername(username).orElseThrow(() -> new AccessDeniedException("sin usuario"));
+        return eventos.findByAutorIdOrderByFechaHoraAsc(usuario.getId()).stream().map(EventoResumen::de).toList();
+    }
+
+    /** Publica un evento nuevo. El autor es siempre el usuario del token, nunca un dato del formulario. */
+    @Transactional
+    public EventoResumen publicar(NuevoEventoRequest r, String username) {
+        Usuario autor = usuarios.findByUsername(username).orElseThrow(() -> new AccessDeniedException("sin usuario"));
+        String categoria = CATEGORIAS.stream().filter(c -> c.equalsIgnoreCase(r.categoria().trim())).findFirst()
+                .orElseThrow(() -> new SolicitudInvalidaException("La categoría no es válida"));
+
+        String ciudad = Textos.limpiar(r.ciudad());
+        String ubicacion = Textos.limpiar(r.ubicacion());
+        String enlace = Textos.limpiar(r.enlaceAcceso());
+        if (r.modalidad() == Modalidad.PRESENCIAL) {
+            if (ciudad == null || ubicacion == null) {
+                throw new SolicitudInvalidaException("Un evento presencial necesita ciudad y dirección");
+            }
+            enlace = null;
+        } else {
+            if (enlace == null || !esEnlaceHttps(enlace)) {
+                throw new SolicitudInvalidaException("Un evento online necesita un enlace que empiece con https://");
+            }
+            ubicacion = null;
+        }
+
+        Evento evento = eventos.save(new Evento(Textos.limpiar(r.nombre()), Textos.limpiar(r.videojuego()), categoria,
+                r.modalidad(), Textos.limpiar(r.pais()), ciudad, r.fechaHora(), ubicacion, enlace,
+                Textos.limpiar(r.organizador()), Textos.limpiar(r.resumen()), Textos.limpiar(r.descripcion()),
+                Textos.limpiar(r.requisitos()), Textos.limpiar(r.inscripcion()), r.cupos(), autor, LocalDateTime.now()));
+        log.info("Evento publicado: id={} autor={}", evento.getId(), autor.getUsername());
+        return EventoResumen.de(evento);
+    }
+
+    /** Solo enlaces https con servidor, para que nadie pueda guardar un enlace "javascript:" en la pagina. */
+    static boolean esEnlaceHttps(String enlace) {
+        try {
+            URI uri = new URI(enlace);
+            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && !uri.getHost().isBlank();
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 
     private static boolean tieneTexto(String valor) {

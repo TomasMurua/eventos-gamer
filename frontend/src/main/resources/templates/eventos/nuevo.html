@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Publicar evento')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor hoja-contenedor hoja-ancha">
+    <section class="hoja">
+        <h1 class="titulo-pagina">Publicar evento</h1>
+        <p class="hoja-bajada">Completa los datos. Después de publicarlo podrás agregar fotos y videos.</p>
+
+        <p th:if="${errorGeneral}" class="aviso aviso-error" role="alert" th:text="${errorGeneral}">Error</p>
+
+        <form th:action="@{/eventos/nuevo}" th:object="${form}" method="post" class="formulario formulario-grilla" novalidate>
+            <div class="campo campo-completo" th:classappend="${#fields.hasErrors('nombre')} ? 'con-error'">
+                <label for="nombre">Nombre del evento</label>
+                <input id="nombre" type="text" th:field="*{nombre}" maxlength="120" required>
+                <p class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('videojuego')} ? 'con-error'">
+                <label for="videojuego">Videojuego</label>
+                <input id="videojuego" type="text" th:field="*{videojuego}" maxlength="80" required>
+                <p class="error-campo" th:if="${#fields.hasErrors('videojuego')}" th:errors="*{videojuego}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('categoria')} ? 'con-error'">
+                <label for="categoria">Categoría</label>
+                <select id="categoria" th:field="*{categoria}" required>
+                    <option value="">Elige una</option>
+                    <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}">Torneo</option>
+                </select>
+                <p class="error-campo" th:if="${#fields.hasErrors('categoria')}" th:errors="*{categoria}">Error</p>
+            </div>
+            <fieldset class="campo campo-completo">
+                <legend>Modalidad</legend>
+                <div class="opciones-linea">
+                    <label><input type="radio" th:field="*{modalidad}" value="PRESENCIAL"> Presencial</label>
+                    <label><input type="radio" th:field="*{modalidad}" value="ONLINE"> Online</label>
+                </div>
+                <p class="error-campo" th:if="${#fields.hasErrors('modalidad')}" th:errors="*{modalidad}">Error</p>
+            </fieldset>
+            <div class="campo" th:classappend="${#fields.hasErrors('fechaHora')} ? 'con-error'">
+                <label for="fechaHora">Fecha y hora</label>
+                <input id="fechaHora" type="datetime-local" th:field="*{fechaHora}" required>
+                <p class="error-campo" th:if="${#fields.hasErrors('fechaHora')}" th:errors="*{fechaHora}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('pais')} ? 'con-error'">
+                <label for="pais">País</label>
+                <input id="pais" type="text" th:field="*{pais}" maxlength="40" required>
+                <p class="error-campo" th:if="${#fields.hasErrors('pais')}" th:errors="*{pais}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('ciudad')} ? 'con-error'">
+                <label for="ciudad">Ciudad <span class="ayuda">(presencial)</span></label>
+                <input id="ciudad" type="text" th:field="*{ciudad}" maxlength="60">
+                <p class="error-campo" th:if="${#fields.hasErrors('ciudad')}" th:errors="*{ciudad}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('ubicacion')} ? 'con-error'">
+                <label for="ubicacion">Dirección <span class="ayuda">(presencial)</span></label>
+                <input id="ubicacion" type="text" th:field="*{ubicacion}" maxlength="200">
+                <p class="error-campo" th:if="${#fields.hasErrors('ubicacion')}" th:errors="*{ubicacion}">Error</p>
+            </div>
+            <div class="campo campo-completo" th:classappend="${#fields.hasErrors('enlaceAcceso')} ? 'con-error'">
+                <label for="enlaceAcceso">Enlace de acceso <span class="ayuda">(online, debe empezar con https://)</span></label>
+                <input id="enlaceAcceso" type="url" th:field="*{enlaceAcceso}" maxlength="200" placeholder="https://">
+                <p class="error-campo" th:if="${#fields.hasErrors('enlaceAcceso')}" th:errors="*{enlaceAcceso}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('organizador')} ? 'con-error'">
+                <label for="organizador">Organiza</label>
+                <input id="organizador" type="text" th:field="*{organizador}" maxlength="120" required>
+                <p class="error-campo" th:if="${#fields.hasErrors('organizador')}" th:errors="*{organizador}">Error</p>
+            </div>
+            <div class="campo" th:classappend="${#fields.hasErrors('cupos')} ? 'con-error'">
+                <label for="cupos">Cupos <span class="ayuda">(opcional)</span></label>
+                <input id="cupos" type="number" th:field="*{cupos}" min="1" max="100000">
+                <p class="error-campo" th:if="${#fields.hasErrors('cupos')}" th:errors="*{cupos}">Error</p>
+            </div>
+            <div class="campo campo-completo" th:classappend="${#fields.hasErrors('resumen')} ? 'con-error'">
+                <label for="resumen">Resumen</label>
+                <input id="resumen" type="text" th:field="*{resumen}" maxlength="255" required>
+                <p class="ayuda">Una frase que aparece en la cartelera y en la búsqueda.</p>
+                <p class="error-campo" th:if="${#fields.hasErrors('resumen')}" th:errors="*{resumen}">Error</p>
+            </div>
+            <div class="campo campo-completo" th:classappend="${#fields.hasErrors('descripcion')} ? 'con-error'">
+                <label for="descripcion">Descripción</label>
+                <textarea id="descripcion" th:field="*{descripcion}" rows="5" maxlength="4000" required></textarea>
+                <p class="error-campo" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}">Error</p>
+            </div>
+            <div class="campo campo-completo" th:classappend="${#fields.hasErrors('requisitos')} ? 'con-error'">
+                <label for="requisitos">Requisitos para participar</label>
+                <textarea id="requisitos" th:field="*{requisitos}" rows="3" maxlength="2000" required></textarea>
+                <p class="error-campo" th:if="${#fields.hasErrors('requisitos')}" th:errors="*{requisitos}">Error</p>
+            </div>
+            <div class="campo campo-completo" th:classappend="${#fields.hasErrors('inscripcion')} ? 'con-error'">
+                <label for="inscripcion">Inscripción</label>
+                <textarea id="inscripcion" th:field="*{inscripcion}" rows="3" maxlength="2000" required></textarea>
+                <p class="error-campo" th:if="${#fields.hasErrors('inscripcion')}" th:errors="*{inscripcion}">Error</p>
+            </div>
+            <div class="acciones campo-completo">
+                <button type="submit" class="boton">Publicar evento</button>
+                <a class="boton boton-linea" th:href="@{/eventos/mios}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

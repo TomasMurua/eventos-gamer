@@ -12,9 +12,9 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 @EnableWebSecurity
 public class WebSecurityConfig {
 
-    /** Paginas publicas: inicio, busqueda de eventos y login. Todo lo demas requiere autenticacion. */
+    /** Paginas publicas: inicio, busqueda de eventos, registro y login. Todo lo demas requiere autenticacion. */
     private static final String[] RUTAS_PUBLICAS = {
-            "/", "/home", "/recetas", "/eventos", "/eventos/buscar", "/login", "/error",
+            "/", "/home", "/recetas", "/eventos", "/eventos/buscar", "/registro", "/login", "/error",
             "/css/**", "/img/**", "/fonts/**", "/favicon.ico"
     };
 

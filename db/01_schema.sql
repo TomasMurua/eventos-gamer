@@ -3,6 +3,10 @@ SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS eventos_gamer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE eventos_gamer;
 
+DROP TABLE IF EXISTS evento_compartidos;
+DROP TABLE IF EXISTS evento_valoraciones;
+DROP TABLE IF EXISTS evento_comentarios;
+DROP TABLE IF EXISTS evento_medios;
 DROP TABLE IF EXISTS evento_fotos;
 DROP TABLE IF EXISTS eventos;
 DROP TABLE IF EXISTS banners;
@@ -44,8 +48,10 @@ CREATE TABLE eventos (
     popularidad   INT          NOT NULL DEFAULT 0,
     destacado     BOOLEAN      NOT NULL DEFAULT FALSE,
     publicado_en  DATETIME     NOT NULL,
+    autor_id      BIGINT       NULL,
     PRIMARY KEY (id),
-    CONSTRAINT ck_eventos_modalidad CHECK (modalidad IN ('PRESENCIAL', 'ONLINE'))
+    CONSTRAINT ck_eventos_modalidad CHECK (modalidad IN ('PRESENCIAL', 'ONLINE')),
+    CONSTRAINT fk_eventos_autor FOREIGN KEY (autor_id) REFERENCES usuarios (id) ON DELETE SET NULL
 );
 
 CREATE INDEX ix_eventos_fecha ON eventos (fecha_hora);
@@ -59,6 +65,64 @@ CREATE TABLE evento_fotos (
     orden       INT          NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     CONSTRAINT fk_fotos_evento FOREIGN KEY (evento_id) REFERENCES eventos (id) ON DELETE CASCADE
+);
+
+-- Fotos y videos que sube el autor del evento. El archivo vive en disco con un nombre aleatorio;
+-- aqui solo queda ese nombre, el tipo verificado y el tamano.
+CREATE TABLE evento_medios (
+    id           BIGINT       NOT NULL AUTO_INCREMENT,
+    evento_id    BIGINT       NOT NULL,
+    usuario_id   BIGINT       NOT NULL,
+    tipo         VARCHAR(5)   NOT NULL,
+    archivo      VARCHAR(64)  NOT NULL,
+    content_type VARCHAR(40)  NOT NULL,
+    tamano       BIGINT       NOT NULL,
+    descripcion  VARCHAR(160) NOT NULL,
+    subido_en    DATETIME     NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_medios_archivo UNIQUE (archivo),
+    CONSTRAINT ck_medios_tipo CHECK (tipo IN ('FOTO', 'VIDEO')),
+    CONSTRAINT fk_medios_evento FOREIGN KEY (evento_id) REFERENCES eventos (id) ON DELETE CASCADE,
+    CONSTRAINT fk_medios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+);
+
+CREATE TABLE evento_comentarios (
+    id         BIGINT        NOT NULL AUTO_INCREMENT,
+    evento_id  BIGINT        NOT NULL,
+    usuario_id BIGINT        NOT NULL,
+    texto      VARCHAR(1000) NOT NULL,
+    creado_en  DATETIME      NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_comentarios_evento FOREIGN KEY (evento_id) REFERENCES eventos (id) ON DELETE CASCADE,
+    CONSTRAINT fk_comentarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+);
+
+CREATE INDEX ix_comentarios_evento ON evento_comentarios (evento_id, creado_en);
+
+-- Una valoracion por usuario y evento (se puede cambiar)
+CREATE TABLE evento_valoraciones (
+    id             BIGINT   NOT NULL AUTO_INCREMENT,
+    evento_id      BIGINT   NOT NULL,
+    usuario_id     BIGINT   NOT NULL,
+    puntaje        INT      NOT NULL,
+    actualizado_en DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_valoraciones_evento_usuario UNIQUE (evento_id, usuario_id),
+    CONSTRAINT ck_valoraciones_puntaje CHECK (puntaje BETWEEN 1 AND 5),
+    CONSTRAINT fk_valoraciones_evento FOREIGN KEY (evento_id) REFERENCES eventos (id) ON DELETE CASCADE,
+    CONSTRAINT fk_valoraciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+);
+
+-- Eventos que los usuarios comparten en el muro del sitio
+CREATE TABLE evento_compartidos (
+    id         BIGINT       NOT NULL AUTO_INCREMENT,
+    evento_id  BIGINT       NOT NULL,
+    usuario_id BIGINT       NOT NULL,
+    mensaje    VARCHAR(280) NULL,
+    creado_en  DATETIME     NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_compartidos_evento FOREIGN KEY (evento_id) REFERENCES eventos (id) ON DELETE CASCADE,
+    CONSTRAINT fk_compartidos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
 );
 
 CREATE TABLE banners (

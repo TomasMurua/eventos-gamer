@@ -3,10 +3,14 @@ package com.duoc.seguridadcalidad.api.controller;
 import com.duoc.seguridadcalidad.api.dto.ErrorRespuesta;
 import com.duoc.seguridadcalidad.api.dto.LoginRequest;
 import com.duoc.seguridadcalidad.api.dto.LoginResponse;
+import com.duoc.seguridadcalidad.api.dto.RegistroRequest;
+import com.duoc.seguridadcalidad.api.dto.RegistroResponse;
 import com.duoc.seguridadcalidad.api.model.Usuario;
 import com.duoc.seguridadcalidad.api.repository.UsuarioRepository;
 import com.duoc.seguridadcalidad.api.security.IntentosLogin;
 import com.duoc.seguridadcalidad.api.security.JwtService;
+import com.duoc.seguridadcalidad.api.security.LimiteRegistros;
+import com.duoc.seguridadcalidad.api.service.RegistroService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Optional;
@@ -33,14 +37,18 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final IntentosLogin intentos;
+    private final RegistroService registro;
+    private final LimiteRegistros limiteRegistros;
     private final String hashFicticio;
 
     public AuthController(UsuarioRepository usuarios, PasswordEncoder passwordEncoder, JwtService jwtService,
-                          IntentosLogin intentos) {
+                          IntentosLogin intentos, RegistroService registro, LimiteRegistros limiteRegistros) {
         this.usuarios = usuarios;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.intentos = intentos;
+        this.registro = registro;
+        this.limiteRegistros = limiteRegistros;
         // Se compara contra este hash cuando el usuario no existe, para que la respuesta tarde lo mismo
         this.hashFicticio = passwordEncoder.encode("clave-que-no-corresponde-a-ningun-usuario");
     }
@@ -76,6 +84,23 @@ public class AuthController {
         String token = jwtService.generar(usuario);
         return ResponseEntity.ok(new LoginResponse(token, "Bearer", jwtService.duracionEnSegundos(),
                 usuario.getUsername(), usuario.getNombre(), usuario.getRol()));
+    }
+
+    /**
+     * Publica: crea una cuenta con rol USER. La contrasena se guarda solo como hash BCrypt.
+     * Se limita la cantidad de registros por IP para frenar la creacion masiva de cuentas.
+     */
+    @PostMapping("/registro")
+    public ResponseEntity<?> registrar(@Valid @RequestBody RegistroRequest request, HttpServletRequest http) {
+        String ip = http.getRemoteAddr();
+        if (!limiteRegistros.permitir(ip)) {
+            log.warn("Registro bloqueado por exceso de cuentas nuevas: ip={}", ip);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(new ErrorRespuesta(429, "Se crearon demasiadas cuentas desde tu red. Intenta más tarde."));
+        }
+        Usuario nuevo = registro.registrar(request);
+        log.info("Cuenta registrada: cuenta={} ip={}", nuevo.getUsername(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new RegistroResponse(nuevo.getUsername(), nuevo.getNombre()));
     }
 
     /** Quita saltos de linea y caracteres de control (evita falsificar lineas del log) y limita el largo. */

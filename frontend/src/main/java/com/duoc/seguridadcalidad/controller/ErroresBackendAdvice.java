@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Traduce los errores de la API del backend a respuestas controladas, sin exponer detalles internos:
@@ -40,6 +41,14 @@ public class ErroresBackendAdvice {
         log.warn("El backend rechazo la peticion: status={} ruta={}", status, request.getRequestURI());
         response.setStatus(status);
         model.addAttribute("status", status);
+        return "error";
+    }
+
+    /** Archivo mas grande que el limite del formulario: se rechaza antes de llegar al backend. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public String archivoGrande(HttpServletResponse response, Model model) {
+        response.setStatus(HttpStatus.PAYLOAD_TOO_LARGE.value());
+        model.addAttribute("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
         return "error";
     }
 

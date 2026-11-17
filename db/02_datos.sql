@@ -109,3 +109,24 @@ INSERT INTO banners (marca, mensaje, rubro) VALUES
 ('NeonByte', 'Periféricos para ganar cada partida', 'Periféricos'),
 ('Fibra Ultra', 'Internet de baja latencia para gamers', 'Conectividad'),
 ('Silla Pro Arena', 'Comodidad para maratones de juego', 'Mobiliario');
+
+-- Eventos publicados por usuarios de la comunidad: ana organiza la Copa Valparaiso y diego la Copa Andina
+UPDATE eventos SET autor_id = (SELECT id FROM usuarios WHERE username = 'ana') WHERE id = 2;
+UPDATE eventos SET autor_id = (SELECT id FROM usuarios WHERE username = 'diego') WHERE id = 8;
+
+INSERT INTO evento_comentarios (evento_id, usuario_id, texto, creado_en) VALUES
+(1, (SELECT id FROM usuarios WHERE username = 'diego'), '¿Alguien sabe si el free play incluye simuladores de carrera? El año pasado había cola de una hora.', '2026-11-03 21:14:00'),
+(1, (SELECT id FROM usuarios WHERE username = 'ana'), 'Sí, había cuatro cabinas en el pabellón B. Lleguen temprano el sábado.', '2026-11-04 08:40:00'),
+(2, (SELECT id FROM usuarios WHERE username = 'diego'), 'Me inscribo con hitbox. ¿Habrá pools por región?', '2026-11-05 19:02:00'),
+(8, (SELECT id FROM usuarios WHERE username = 'ana'), 'Vamos a armar equipo desde Santiago, nos falta un controlador.', '2026-11-06 22:30:00');
+
+INSERT INTO evento_valoraciones (evento_id, usuario_id, puntaje, actualizado_en) VALUES
+(1, (SELECT id FROM usuarios WHERE username = 'ana'), 5, '2026-11-04 08:41:00'),
+(1, (SELECT id FROM usuarios WHERE username = 'diego'), 4, '2026-11-03 21:15:00'),
+(2, (SELECT id FROM usuarios WHERE username = 'diego'), 5, '2026-11-05 19:03:00'),
+(5, (SELECT id FROM usuarios WHERE username = 'diego'), 4, '2026-11-02 12:00:00'),
+(8, (SELECT id FROM usuarios WHERE username = 'ana'), 4, '2026-11-06 22:31:00');
+
+INSERT INTO evento_compartidos (evento_id, usuario_id, mensaje, creado_en) VALUES
+(2, (SELECT id FROM usuarios WHERE username = 'ana'), 'Abrimos inscripciones para la Copa Valparaíso. ¡Los esperamos en el Parque Cultural!', '2026-11-02 10:00:00'),
+(5, (SELECT id FROM usuarios WHERE username = 'diego'), 'La final universitaria en el Movistar Arena promete.', '2026-11-04 18:20:00');

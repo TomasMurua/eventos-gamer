@@ -12,6 +12,7 @@
         <p th:if="${param.error}" class="aviso aviso-error" role="alert">El usuario o la contraseña no coinciden. Después de 5 intentos fallidos el acceso se bloquea por 15 minutos.</p>
         <p th:if="${param.logout}" class="aviso aviso-ok" role="status">Cerraste sesión.</p>
         <p th:if="${param.expirada}" class="aviso aviso-ok" role="status">Tu sesión expiró. Ingresa de nuevo para seguir.</p>
+        <p th:if="${param.registrado}" class="aviso aviso-ok" role="status">Tu cuenta quedó creada. Ingresa con tu correo o usuario.</p>
 
         <form th:action="@{/login}" method="post" class="formulario">
             <div class="campo">
@@ -25,6 +26,7 @@
             </div>
             <button type="submit" class="boton">Ingresar</button>
         </form>
+        <p class="hoja-nota">¿No tienes cuenta? <a th:href="@{/registro}">Créala aquí</a> para publicar eventos, comentar y valorar.</p>
     </section>
 </main>
 

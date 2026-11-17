@@ -22,11 +22,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.duoc.seguridadcalidad.backend.BackendClient;
 import com.duoc.seguridadcalidad.backend.Dtos.Banner;
+import com.duoc.seguridadcalidad.backend.Dtos.Comentario;
+import com.duoc.seguridadcalidad.backend.Dtos.Comunidad;
 import com.duoc.seguridadcalidad.backend.Dtos.EventoDetalle;
 import com.duoc.seguridadcalidad.backend.Dtos.EventoResumen;
 import com.duoc.seguridadcalidad.backend.Dtos.Filtros;
 import com.duoc.seguridadcalidad.backend.Dtos.Foto;
 import com.duoc.seguridadcalidad.backend.Dtos.LoginResponse;
+import com.duoc.seguridadcalidad.backend.Dtos.Medio;
 import com.duoc.seguridadcalidad.backend.Dtos.Portada;
 import com.duoc.seguridadcalidad.backend.Dtos.Usuario;
 import com.duoc.seguridadcalidad.security.SesionUsuario;
@@ -59,7 +62,15 @@ class SeguridadRutasTest {
     static final EventoDetalle DETALLE = new EventoDetalle(1L, "Santiago Gaming Fest 2026", "Varios", "Convención",
             "PRESENCIAL", "Chile", "Santiago", LocalDateTime.of(2026, 11, 14, 10, 0), "Espacio Riesco", null,
             "Asociación Gamer Chile", "Tres pabellones", "Mayores de 12 años", "Entradas en boletería", 4000, 980,
-            List.of(new Foto("/img/eventos/evento-1-a.svg", "Pabellón principal")));
+            List.of(new Foto("/img/eventos/evento-1-a.svg", "Pabellón principal")), null, false, List.of(),
+            new Comunidad(4.5, 2, null, List.of(new Comentario(7L, "diego",
+                    "<img src=x onerror=alert(1)> ¿Hay free play?", LocalDateTime.of(2026, 11, 3, 21, 14), false)), 1));
+
+    /** Evento publicado por ana: ella lo puede editar y ya tiene un video. */
+    static final EventoDetalle PROPIO = new EventoDetalle(2L, "Copa Valparaíso", "Street Fighter 6", "Torneo",
+            "PRESENCIAL", "Chile", "Valparaíso", LocalDateTime.of(2026, 11, 21, 11, 30), "Parque Cultural", null,
+            "Club FGC Puerto", "Brackets", "Traer control", "start.gg", 128, 640, List.of(), "ana", true,
+            List.of(new Medio(5L, "VIDEO", "Final 2025")), new Comunidad(null, 0, null, List.of(), 0));
 
     @Autowired
     MockMvc mvc;
@@ -70,9 +81,9 @@ class SeguridadRutasTest {
     @BeforeEach
     void datosDelBackend() {
         when(backend.portada()).thenReturn(new Portada(List.of(FEST), List.of(FEST), List.of(FEST),
-                List.of(new Banner("NeonByte", "Periféricos para ganar", "Periféricos"))));
+                List.of(new Banner("NeonByte", "Periféricos para ganar", "Periféricos")), List.of()));
         when(backend.filtros()).thenReturn(new Filtros(List.of("Varios"), List.of("Convención"), List.of("Chile"),
-                List.of("Santiago")));
+                List.of("Santiago"), List.of("Convención", "Torneo")));
         when(backend.buscar(anyMap())).thenReturn(List.of(FEST));
         when(backend.login(anyString(), anyString(), any())).thenReturn(Optional.empty());
         when(backend.login(eq("ana@eventosgamer.cl"), eq("Gamer2026!"), any()))
@@ -81,6 +92,7 @@ class SeguridadRutasTest {
                 .thenReturn(Optional.of(new LoginResponse("jwt-admin", "Bearer", 1800, "admin", "Admin", "ADMIN")));
         when(backend.detalle(eq(1L), any())).thenReturn(Optional.of(DETALLE));
         when(backend.detalle(eq(999L), any())).thenReturn(Optional.empty());
+        when(backend.detalle(eq(2L), any())).thenReturn(Optional.of(PROPIO));
         when(backend.yo(any())).thenReturn(new Usuario("ana", "ana@eventosgamer.cl", "Ana Rojas", "USER", null));
     }
 
@@ -91,7 +103,7 @@ class SeguridadRutasTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/eventos", "/", "/home", "/recetas", "/eventos/buscar", "/login", "/css/style.css"})
+    @ValueSource(strings = {"/eventos", "/", "/home", "/recetas", "/eventos/buscar", "/registro", "/login", "/css/style.css"})
     void rutasPublicasNoPidenLogin(String ruta) throws Exception {
         mvc.perform(get(ruta)).andExpect(status().isOk());
     }
@@ -112,7 +124,8 @@ class SeguridadRutasTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/eventos/1", "/perfil", "/admin/usuarios"})
+    @ValueSource(strings = {"/eventos/1", "/perfil", "/admin/usuarios", "/eventos/nuevo", "/eventos/mios",
+            "/eventos/1/medios/5"})
     void rutasPrivadasRedirigenAlLogin(String ruta) throws Exception {
         mvc.perform(get(ruta))
                 .andExpect(status().is3xxRedirection())

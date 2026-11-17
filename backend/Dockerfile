@@ -9,7 +9,8 @@ RUN mvn -q package -DskipTests
 # Etapa 2: imagen liviana solo con el JRE, ejecutando como usuario sin privilegios
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-RUN addgroup -S app && adduser -S app -G app
+RUN addgroup -S app && adduser -S app -G app \
+    && mkdir -p /data/medios && chown app:app /data/medios
 COPY --from=build /app/target/eventos-gamer-api-*.jar app.jar
 USER app
 EXPOSE 8081

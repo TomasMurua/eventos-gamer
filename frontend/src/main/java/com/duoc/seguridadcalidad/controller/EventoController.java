@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Controller
 @RequestMapping("/eventos")
@@ -80,8 +81,13 @@ public class EventoController {
     /** Privada: detalle del evento, pedido al backend con el token JWT de la sesion del usuario. */
     @GetMapping("/{id}")
     public String detalle(@PathVariable Long id, @AuthenticationPrincipal SesionUsuario sesion, Model model) {
-        model.addAttribute("evento", backend.detalle(id, sesion.token())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado")));
+        var evento = backend.detalle(id, sesion.token())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado"));
+        model.addAttribute("evento", evento);
+        String url = ServletUriComponentsBuilder.fromCurrentContextPath().path("/eventos/{id}").buildAndExpand(id)
+                .toUriString();
+        model.addAttribute("enlaceEvento", url);
+        model.addAttribute("redes", EnlacesCompartir.para(url, evento.nombre() + " en LJCS"));
         return "eventos/detalle";
     }
 

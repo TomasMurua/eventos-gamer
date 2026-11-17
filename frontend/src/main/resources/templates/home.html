@@ -13,6 +13,8 @@
                 <div class="acciones">
                     <a class="boton" th:href="@{/eventos/buscar}">Buscar eventos</a>
                     <a sec:authorize="isAnonymous()" class="boton boton-linea" th:href="@{/login}">Iniciar sesión</a>
+                    <a sec:authorize="isAnonymous()" class="boton boton-linea" th:href="@{/registro}">Crear cuenta</a>
+                    <a sec:authorize="isAuthenticated()" class="boton boton-linea" th:href="@{/eventos/nuevo}">Publicar un evento</a>
                 </div>
                 <p sec:authorize="isAuthenticated()" class="saludo">Hola, <span sec:authentication="name">usuario</span>.</p>
             </div>
@@ -40,6 +42,20 @@
             <th:block th:each="evento : ${recientes}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
         </ol>
         <p th:if="${#lists.isEmpty(recientes)}" class="vacio">Todavía no hay eventos publicados.</p>
+    </section>
+
+    <section class="contenedor seccion" th:unless="${#lists.isEmpty(compartidos)}" aria-labelledby="titulo-muro">
+        <h2 id="titulo-muro">Compartido por la comunidad</h2>
+        <ul class="muro">
+            <li th:each="c : ${compartidos}" class="muro-item">
+                <p class="muro-quien">
+                    <span class="muro-usuario" th:text="${'@' + c.usuario()}">@ana</span>
+                    <time th:datetime="${c.fecha()}" th:text="${#temporals.format(c.fecha(), 'd ''de'' MMMM')}">2 de noviembre</time>
+                </p>
+                <p class="muro-mensaje" th:if="${c.mensaje() != null}" th:text="${c.mensaje()}">Mensaje</p>
+                <a class="muro-evento" th:href="@{/eventos/{id}(id=${c.eventoId()})}" th:text="${c.evento()}">Evento</a>
+            </li>
+        </ul>
     </section>
 
     <section class="contenedor seccion" th:unless="${#lists.isEmpty(populares)}">

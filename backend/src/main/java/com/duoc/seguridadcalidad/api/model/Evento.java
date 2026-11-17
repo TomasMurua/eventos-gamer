@@ -5,7 +5,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -18,6 +23,7 @@ import java.util.List;
 public class Evento {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -72,11 +78,40 @@ public class Evento {
     @Column(name = "publicado_en", nullable = false)
     private LocalDateTime publicadoEn;
 
+    /** Usuario que publico el evento. Los eventos cargados por el equipo de LJCS no tienen autor. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "autor_id")
+    private Usuario autor;
+
     @OneToMany(mappedBy = "evento", cascade = CascadeType.ALL)
     @OrderBy("orden ASC")
     private List<FotoEvento> fotos = new ArrayList<>();
 
     protected Evento() {
+    }
+
+    /** Evento nuevo publicado por un usuario. Los textos llegan ya validados desde la API. */
+    public Evento(String nombre, String videojuego, String categoria, Modalidad modalidad, String pais, String ciudad,
+                  LocalDateTime fechaHora, String ubicacion, String enlaceAcceso, String organizador, String resumen,
+                  String descripcion, String requisitos, String inscripcion, Integer cupos, Usuario autor,
+                  LocalDateTime publicadoEn) {
+        this.nombre = nombre;
+        this.videojuego = videojuego;
+        this.categoria = categoria;
+        this.modalidad = modalidad;
+        this.pais = pais;
+        this.ciudad = ciudad;
+        this.fechaHora = fechaHora;
+        this.ubicacion = ubicacion;
+        this.enlaceAcceso = enlaceAcceso;
+        this.organizador = organizador;
+        this.resumen = resumen;
+        this.descripcion = descripcion;
+        this.requisitos = requisitos;
+        this.inscripcion = inscripcion;
+        this.cupos = cupos;
+        this.autor = autor;
+        this.publicadoEn = publicadoEn;
     }
 
     public Long getId() {
@@ -153,6 +188,15 @@ public class Evento {
 
     public LocalDateTime getPublicadoEn() {
         return publicadoEn;
+    }
+
+    public Usuario getAutor() {
+        return autor;
+    }
+
+    /** true si el usuario indicado publico este evento. */
+    public boolean esAutor(Usuario usuario) {
+        return autor != null && usuario != null && autor.getId().equals(usuario.getId());
     }
 
     public List<FotoEvento> getFotos() {

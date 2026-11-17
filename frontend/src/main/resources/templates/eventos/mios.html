@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Mis eventos')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+
+<main class="contenedor seccion">
+    <h1 class="titulo-pagina">Mis eventos</h1>
+    <div class="acciones">
+        <a class="boton" th:href="@{/eventos/nuevo}">Publicar evento</a>
+    </div>
+
+    <p class="conteo" role="status"
+       th:text="${#lists.size(eventos) == 1} ? 'Publicaste 1 evento' : ${'Publicaste ' + #lists.size(eventos) + ' eventos'}">Publicaste 2 eventos</p>
+
+    <ol class="cartelera" th:unless="${#lists.isEmpty(eventos)}">
+        <th:block th:each="evento : ${eventos}"><li th:replace="~{fragments :: fila(${evento})}"></li></th:block>
+    </ol>
+    <div th:if="${#lists.isEmpty(eventos)}" class="vacio">
+        <p>Todavía no publicas eventos. Cuando publiques uno podrás agregarle fotos y videos y compartirlo.</p>
+    </div>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>
