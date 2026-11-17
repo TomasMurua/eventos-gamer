@@ -79,6 +79,17 @@ class LimiteFrecuenciaTest {
     }
 
     @Test
+    void laColaDeUnaClaveNoCreceConElTiempo() {
+        RelojMovil reloj = new RelojMovil();
+        LimiteFrecuencia limites = new LimiteFrecuencia(reloj);
+        for (int minuto = 0; minuto < 600; minuto++) {
+            assertThat(limites.intentar("c", 5, Duration.ofMinutes(1))).isTrue();
+            reloj.ahora = reloj.ahora.plus(Duration.ofMinutes(1));
+        }
+        assertThat(limites.tamano("c")).isLessThanOrEqualTo(5);
+    }
+
+    @Test
     void agrupaIpv6PorPrefijo64() {
         assertThat(LimiteFrecuencia.grupoIp("2800:150:1:2::10"))
                 .isEqualTo(LimiteFrecuencia.grupoIp("2800:150:1:2:ffff::99"));

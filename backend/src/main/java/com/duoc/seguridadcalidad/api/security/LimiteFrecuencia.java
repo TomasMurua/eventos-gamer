@@ -57,8 +57,12 @@ public class LimiteFrecuencia {
         Instant ahora = reloj.instant();
         Deque<Instant> lista = marcas.computeIfAbsent(clave, k -> new ArrayDeque<>());
         synchronized (lista) {
+            // Se descartan las marcas que ya salieron de la ventana: la cola nunca supera el maximo
             Instant desde = ahora.minus(ventana);
-            if (lista.stream().filter(t -> t.isAfter(desde)).count() >= maximo) {
+            while (!lista.isEmpty() && !lista.peekFirst().isAfter(desde)) {
+                lista.pollFirst();
+            }
+            if (lista.size() >= maximo) {
                 return false;
             }
             lista.addLast(ahora);
@@ -91,6 +95,17 @@ public class LimiteFrecuencia {
         }
         if (marcas.size() > TAMANO_PARA_PURGAR) {
             purgar(ahora);
+        }
+    }
+
+    /** Marcas guardadas para una clave (para los tests). */
+    int tamano(String clave) {
+        Deque<Instant> lista = marcas.get(clave);
+        if (lista == null) {
+            return 0;
+        }
+        synchronized (lista) {
+            return lista.size();
         }
     }
 
