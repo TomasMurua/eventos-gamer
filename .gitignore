@@ -6,3 +6,4 @@
 .vscode/
 eventos-gamer.env
 target/
+.sonar/
